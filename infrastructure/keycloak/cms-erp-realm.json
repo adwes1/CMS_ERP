@@ -1,0 +1,61 @@
+{
+  "realm": "cms-erp",
+  "enabled": true,
+  "displayName": "CMS ERP",
+  "loginTheme": "cms-erp-terminal",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      { "name": "cms-erp-user", "description": "Zugriff auf das CMS/ERP" },
+      { "name": "cms-erp-admin", "description": "Administration des CMS/ERP" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "cms-erp-web",
+      "name": "CMS ERP Web",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["https://cms-erp.localhost/*"],
+      "webOrigins": ["https://cms-erp.localhost"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://cms-erp.localhost/*"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "basic", "roles", "profile", "email"]
+    },
+    {
+      "clientId": "cms-erp-api",
+      "name": "CMS ERP API Service",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "firstName": "System",
+      "lastName": "Administrator",
+      "enabled": true,
+      "realmRoles": ["cms-erp-user", "cms-erp-admin"]
+    },
+    {
+      "username": "service-account-cms-erp-api",
+      "enabled": true,
+      "serviceAccountClientId": "cms-erp-api",
+      "clientRoles": {
+        "realm-management": ["manage-users", "query-users", "view-users"]
+      }
+    }
+  ]
+}

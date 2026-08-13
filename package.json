@@ -1,0 +1,16 @@
+{
+  "name": "cms-erp",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @cms-erp/api && npm run build --workspace @cms-erp/web",
+    "test": "npm run test --workspace @cms-erp/api && npm run test --workspace @cms-erp/web"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
+

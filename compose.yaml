@@ -1,0 +1,133 @@
+name: cms-erp
+
+services:
+  gateway:
+    image: caddy:2.10.0-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      OIDC_ISSUER: https://cms-erp.localhost/auth/realms/cms-erp
+      OIDC_JWKS_URI: http://keycloak:8080/auth/realms/cms-erp/protocol/openid-connect/certs
+      OIDC_CLIENT_ID: cms-erp-web
+      OIDC_REQUIRED_ROLE: cms-erp-user
+      KEYCLOAK_BASE_URL: http://keycloak:8080/auth
+      KEYCLOAK_REALM: cms-erp
+      KEYCLOAK_API_CLIENT_ID: cms-erp-api
+      KEYCLOAK_API_CLIENT_SECRET: ${KEYCLOAK_API_CLIENT_SECRET}
+      INTEGRATION_ENCRYPTION_KEY: ${KEYCLOAK_API_CLIENT_SECRET}
+      ARTICLE_IMAGE_DIR: /app/data/article-images
+      PORT: 3000
+    volumes:
+      - article_images:/app/data/article-images
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      keycloak-config:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+
+  postgres:
+    image: postgres:18.0-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./infrastructure/postgres/keycloak-schema.sql:/docker-entrypoint-initdb.d/10-keycloak-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.0
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_DB_SCHEMA: keycloak
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME: https://cms-erp.localhost/auth
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      - ./infrastructure/keycloak/cms-erp-realm.json:/opt/keycloak/data/import/cms-erp-realm.json:ro
+      - ./infrastructure/keycloak/themes:/opt/keycloak/themes:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /auth/health/ready HTTP/1.1\\r\\nhost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  keycloak-config:
+    image: quay.io/keycloak/keycloak:26.7.0
+    restart: "no"
+    entrypoint: ["/bin/sh", "/config/configure.sh"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_APP_ADMIN_PASSWORD: ${KEYCLOAK_APP_ADMIN_PASSWORD:?KEYCLOAK_APP_ADMIN_PASSWORD muss gesetzt sein}
+      KEYCLOAK_API_CLIENT_SECRET: ${KEYCLOAK_API_CLIENT_SECRET}
+    volumes:
+      - ./infrastructure/keycloak/configure.sh:/config/configure.sh:ro
+      - ./infrastructure/keycloak/user-profile.json:/config/user-profile.json:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  article_images:
+  caddy_data:
+  caddy_config:

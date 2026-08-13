@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  identityId  String   @unique @map("identity_id")
+  username    String
+  email       String?
+  displayName String?  @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
+}
+
+model Address {
+  id             String   @id @default(uuid()) @db.Uuid
+  addressNumber  Int      @unique @default(autoincrement()) @map("address_number")
+  customerNumber String?  @map("customer_number")
+  type           String   @default("KUNDE")
+  company        String?
+  salutation     String?
+  firstName      String?  @map("first_name")
+  lastName       String?  @map("last_name")
+  street         String?
+  houseNumber    String?  @map("house_number")
+  postalCode     String?  @map("postal_code")
+  city           String?
+  country        String   @default("Deutschland")
+  email          String?
+  phone          String?
+  mobile         String?
+  website        String?
+  taxNumber      String?  @map("tax_number")
+  notes          String?
+  specificationId String? @db.Uuid @map("specification_id")
+  specification   Specification? @relation(fields: [specificationId], references: [id], onDelete: Restrict)
+  bankData       Json?    @map("bank_data")
+  deliveryAddresses Json? @map("delivery_addresses")
+  contacts       Json?
+  documents      Json?
+  purchasedItems Json?    @map("purchased_items")
+  externalReferences ExternalEntityReference[]
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([company])
+  @@index([lastName])
+  @@index([customerNumber])
+  @@index([specificationId])
+  @@map("addresses")
+}
+
+model Specification {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  addresses Address[]
+
+  @@map("specifications")
+}
+
+model PaymentMethod {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("payment_methods")
+}
+
+model Article {
+  id              String   @id @default(uuid()) @db.Uuid
+  articleNumber   String   @unique @map("article_number")
+  name            String
+  type            String   @default("VERKAUFSARTIKEL")
+  stock           Decimal  @default(0) @db.Decimal(14, 3)
+  stockEntries    Json?    @map("stock_entries")
+  unitId          String   @db.Uuid @map("unit_id")
+  unit            ArticleUnit @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  variantLinks    ArticleVariantLink[] @relation("ArticleVariants")
+  usedAsVariant   ArticleVariantLink[] @relation("VariantArticle")
+  vatRate         String   @default("19") @map("vat_rate")
+  netWeightKg     Decimal? @db.Decimal(12, 3) @map("net_weight_kg")
+  grossWeightKg   Decimal? @db.Decimal(12, 3) @map("gross_weight_kg")
+  lengthCm        Decimal? @db.Decimal(12, 3) @map("length_cm")
+  widthCm         Decimal? @db.Decimal(12, 3) @map("width_cm")
+  heightCm        Decimal? @db.Decimal(12, 3) @map("height_cm")
+  notes           String?
+  purchasePrices  Json?    @map("purchase_prices")
+  salePrices      Json?    @map("sale_prices")
+  positions       Json?
+  externalNumbers Json?    @map("external_numbers")
+  files           Json?
+  purchasing      Json?
+  externalReferences ExternalEntityReference[]
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@index([type])
+  @@index([unitId])
+  @@map("articles")
+}
+
+model ArticleVariantLink {
+  articleId        String  @db.Uuid @map("article_id")
+  variantArticleId String  @db.Uuid @map("variant_article_id")
+  variantType      String? @map("variant_type")
+  article          Article @relation("ArticleVariants", fields: [articleId], references: [id], onDelete: Cascade)
+  variantArticle   Article @relation("VariantArticle", fields: [variantArticleId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@id([articleId, variantArticleId])
+  @@index([variantArticleId])
+  @@map("article_variant_links")
+}
+
+model ArticleUnit {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  articles  Article[]
+
+  @@map("article_units")
+}
+
+model WarehouseLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  location  String
+  shelf     String
+  position  String
+  maxWeight Decimal? @db.Decimal(12, 3) @map("max_weight")
+  length    Decimal? @db.Decimal(12, 3)
+  width     Decimal? @db.Decimal(12, 3)
+  depth     Decimal? @db.Decimal(12, 3)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([location, shelf, position])
+  @@index([location])
+  @@map("warehouse_locations")
+}
+
+model ExternalIntegration {
+  id                    String    @id @default(uuid()) @db.Uuid
+  name                  String    @unique
+  provider              String
+  baseUrl               String    @map("base_url")
+  clientId              String    @map("client_id")
+  clientSecretEncrypted String    @map("client_secret_encrypted")
+  active                Boolean   @default(true)
+  lastTestedAt          DateTime? @map("last_tested_at")
+  lastTestStatus        String?   @map("last_test_status")
+  lastTestMessage       String?   @map("last_test_message")
+  allowImport           Boolean   @default(false) @map("allow_import")
+  allowStockImport      Boolean   @default(false) @map("allow_stock_import")
+  allowExport           Boolean   @default(false) @map("allow_export")
+  allowUpdate           Boolean   @default(false) @map("allow_update")
+  allowDelete           Boolean   @default(false) @map("allow_delete")
+  cronEnabled           Boolean   @default(false) @map("cron_enabled")
+  cronIntervalMinutes   Int       @default(15) @map("cron_interval_minutes")
+  lastStockSyncAt       DateTime? @map("last_stock_sync_at")
+  lastStockSyncStatus   String?   @map("last_stock_sync_status")
+  lastStockSyncMessage  String?   @map("last_stock_sync_message")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  externalReferences    ExternalEntityReference[]
+  customerImportJobs    CustomerImportJob[]
+  articleImportJobs     ArticleImportJob[]
+
+  @@index([provider])
+  @@index([active])
+  @@map("external_integrations")
+}
+
+model ExternalEntityReference {
+  id            String              @id @default(uuid()) @db.Uuid
+  integrationId String              @db.Uuid @map("integration_id")
+  integration   ExternalIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  entityType    String              @map("entity_type")
+  externalId    String              @map("external_id")
+  parentExternalId String?          @map("parent_external_id")
+  variantType   String?             @map("variant_type")
+  addressId     String?             @db.Uuid @map("address_id")
+  address       Address?            @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  articleId     String?             @db.Uuid @map("article_id")
+  article       Article?            @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  @@unique([integrationId, entityType, externalId])
+  @@index([addressId])
+  @@index([articleId])
+  @@index([parentExternalId])
+  @@map("external_entity_references")
+}
+
+model CustomerImportJob {
+  id            String              @id @default(uuid()) @db.Uuid
+  integrationId String              @db.Uuid @map("integration_id")
+  integration   ExternalIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  status        String              @default("RUNNING")
+  page          Int                 @default(1)
+  batchSize     Int                 @default(25) @map("batch_size")
+  total         Int                 @default(0)
+  processed     Int                 @default(0)
+  imported      Int                 @default(0)
+  skipped       Int                 @default(0)
+  failed        Int                 @default(0)
+  errorMessage  String?             @map("error_message")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  completedAt   DateTime?           @map("completed_at")
+
+  @@index([integrationId, status])
+  @@map("customer_import_jobs")
+}
+
+model ArticleImportJob {
+  id            String              @id @default(uuid()) @db.Uuid
+  integrationId String              @db.Uuid @map("integration_id")
+  integration   ExternalIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  status        String              @default("RUNNING")
+  page          Int                 @default(1)
+  batchSize     Int                 @default(25) @map("batch_size")
+  total         Int                 @default(0)
+  processed     Int                 @default(0)
+  imported      Int                 @default(0)
+  skipped       Int                 @default(0)
+  failed        Int                 @default(0)
+  errorMessage  String?             @map("error_message")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  completedAt   DateTime?           @map("completed_at")
+
+  @@index([integrationId, status])
+  @@map("article_import_jobs")
+}
