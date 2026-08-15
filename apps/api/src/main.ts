@@ -19,7 +19,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('CMS ERP API')
     .setDescription('API des modularen CMS/ERP-Systems')
-    .setVersion('0.3.0a')
+    .setVersion('0.3.1a')
     .addBearerAuth()
     .build();
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swaggerConfig));

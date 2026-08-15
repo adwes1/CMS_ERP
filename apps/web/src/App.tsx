@@ -79,6 +79,20 @@ type NavigationGroup = {
   items: NavigationItem[];
 };
 
+const settingsItems: NavigationItem[] = [
+  { label: 'System', route: '#/settings/system' },
+  { label: 'Benutzer', route: '#/settings/users' },
+  { label: 'Spezifikationen', route: '#/settings/specifications' },
+  { label: 'Artikel', route: '#/settings/articles' },
+  { label: 'Zahlungsarten', route: '#/settings/payment-methods' },
+  { label: 'Schnittstellen', route: '#/settings/interfaces' },
+  { label: 'API-Anbindung', route: '#/settings/api-connection' },
+  { label: 'Cronjobs', route: '#/settings/cronjobs' },
+  { label: 'Backup', route: '#/settings/backup' },
+  { label: 'Update', route: '#/settings/update' },
+  { label: 'Rollen & Rechte', route: '#/settings/roles' },
+];
+
 const navigation: NavigationGroup[] = [
   {
     id: 'orders',
@@ -144,19 +158,7 @@ const navigation: NavigationGroup[] = [
     id: 'settings',
     label: 'Einstellungen',
     route: '#/settings',
-    items: [
-      { label: 'System', route: '#/settings' },
-      { label: 'Benutzer', route: '#/settings/users' },
-      { label: 'Spezifikationen', route: '#/settings/specifications' },
-      { label: 'Artikel', route: '#/settings/articles' },
-      { label: 'Zahlungsarten', route: '#/settings/payment-methods' },
-      { label: 'Schnittstellen', route: '#/settings/interfaces' },
-      { label: 'API-Anbindung', route: '#/settings/api-connection' },
-      { label: 'Cronjobs', route: '#/settings/cronjobs' },
-      { label: 'Backup', route: '#/settings/backup' },
-      { label: 'Update', route: '#/settings/update' },
-      { label: 'Rollen & Rechte', route: '#/settings/roles' },
-    ],
+    items: [],
   },
 ];
 
@@ -172,7 +174,7 @@ function getActiveGroup(route: string) {
 }
 
 function PlaceholderModule({ route }: { route: string }) {
-  const item = navigation.flatMap((group) => group.items).find((entry) => entry.route === route);
+  const item = [...navigation.flatMap((group) => group.items), ...settingsItems].find((entry) => entry.route === route);
 
   return (
     <Stack spacing={3}>
@@ -235,7 +237,7 @@ function NavigationGroupEntry({
         {group.label}
       </Button>
 
-      {isExpanded && (
+      {isExpanded && group.items.length > 0 && (
         <Box sx={{ borderBottom: 1, borderColor: 'divider', py: 0.5 }}>
           {group.items.map((item) => {
             const selected = item.route === route || (item.route === '#/settings/interfaces' && route.startsWith('#/settings/interfaces/'));
@@ -303,15 +305,8 @@ function App() {
     if (route === '#/settings') {
       return (
         <SettingsPage
-          onOpenUsers={() => navigate('#/settings/users')}
-          onOpenSpecifications={() => navigate('#/settings/specifications')}
-          onOpenArticles={() => navigate('#/settings/articles')}
-          onOpenPaymentMethods={() => navigate('#/settings/payment-methods')}
-          onOpenInterfaces={() => navigate('#/settings/interfaces')}
-          onOpenApiConnection={() => navigate('#/settings/api-connection')}
-          onOpenCronJobs={() => navigate('#/settings/cronjobs')}
-          onOpenBackup={() => navigate('#/settings/backup')}
-          onOpenUpdate={() => navigate('#/settings/update')}
+          items={settingsItems}
+          onOpen={navigate}
         />
       );
     }
@@ -438,7 +433,7 @@ function App() {
       >
         <Box component="span" sx={{ color: error ? 'error.main' : 'success.main' }}>● {error ? 'DEGRADED' : 'ONLINE'}</Box>
         <Box component="span" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {user?.displayName ?? user?.username ?? 'SITZUNG WIRD GELADEN'} · {isAdmin ? 'ADMIN' : 'BENUTZER'} · CMS_ERP 0.3.0a
+          {user?.displayName ?? user?.username ?? 'SITZUNG WIRD GELADEN'} · {isAdmin ? 'ADMIN' : 'BENUTZER'} · CMS_ERP 0.3.1a
         </Box>
       </Box>
     </Box>

@@ -1,7 +1,7 @@
 # CMS ERP – Projektdokumentation
 
 **Dokumentationsstand:** 15. August 2026
-**Projektversion:** 0.3.0a
+**Projektversion:** 0.3.1a
 **Status:** lauffähige lokale Entwicklungsgrundlage mit ersten Kernfunktionen
 
 ## 1. Projektziel
@@ -20,10 +20,9 @@ erste fachliche Funktionen bereit. Der Schwerpunkt der bisherigen Arbeiten lag a
 - reproduzierbarem Betrieb über Docker Compose und lokalem HTTPS sowie
   vorbereiteter Bereitstellung über GitHub Container Registry und Portainer.
 
-Die Bereiche Aufträge, Angebote und Buchhaltung sowie einzelne Übersichts- und
-Bewegungsseiten sind in der Navigation bereits vorgesehen, aber noch nicht
-fachlich implementiert. In der Produktion ist die Verwaltung von
-Produktionsanweisungen bereits umgesetzt.
+Die Bereiche Aufträge, Angebote und Buchhaltung sowie Lagerbewegungen sind in der
+Navigation bereits vorgesehen, aber noch nicht fachlich implementiert. In der
+Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 
 ## 2. Aktueller Funktionsumfang
 
@@ -37,23 +36,26 @@ Produktionsanweisungen bereits umgesetzt.
 | Benutzerprofile | umgesetzt | automatische Synchronisierung eines lokalen Profils beim ersten API-Aufruf |
 | Adressen | umgesetzt | Übersicht, Suche, Anlage und Bearbeitung mit automatisch vergebener Adressnummer |
 | Adressdetails | umgesetzt | Stammdaten, Lieferadressen, Bankdaten, Ansprechpartner, Dokumentverweise und gekaufte Artikel |
-| Spezifikationen | umgesetzt | auflisten sowie durch Administratoren anlegen und löschen |
+| Spezifikationen | umgesetzt | auflisten sowie durch Administratoren anlegen, umbenennen und löschen |
 | Artikel | umgesetzt | Übersicht, Detailabruf, Suche, Anlage und Bearbeitung einschließlich automatischer Nummern, Preisen, Lagerbeständen, Varianten, ausgelagertem Produktbild und Produktionspositionen |
 | Artikelarten | umgesetzt | sieben konfigurierbare Arten mit Bezeichnung, Nummernpräfix, Textfarbe und nächster Nummer |
 | Artikeleinheiten | umgesetzt | auflisten; durch Administratoren anlegen, umbenennen und löschen |
 | Lagerplätze | umgesetzt | Übersicht, Suche sowie Anlage, Bearbeitung und geschützte Löschung |
 | Bestandsübersicht | umgesetzt | Kennzahlen, lagerplatzbezogene Bestände, Bewertung, kritische und unbewertete Positionen |
 | Produktionsanweisungen | umgesetzt | Übersicht und vollständige Pflege verschachtelter Elemente und Arbeitsschritte |
+| Produktionen | umgesetzt | Produktionsübersicht, Suche und Erzeugung unveränderlicher Arbeitskopien aus Anweisungsvorlagen |
 | Zahlungsarten | umgesetzt | auflisten; durch Administratoren anlegen und löschen |
 | Externe Schnittstellen | umgesetzt | Shopware-6-Verbindungen verwalten, Zugangsdaten verschlüsseln und Verbindung testen |
 | Datenfreigaben | umgesetzt | Import, separaten Bestandsimport, Export, Änderung und Löschung je Schnittstelle freigeben oder sperren |
 | Shopware-Kundenimport | umgesetzt | schreibfreie Vorschau und bestätigter, paketweiser Import mit Dublettenprüfung |
 | Shopware-Artikelimport | umgesetzt | Vorschau und paketweiser Import einschließlich Bestand, Medien und Variantenbeziehungen |
 | Shopware-Bestandsabgleich | umgesetzt | konfigurierbarer Hintergrundabgleich, Status und letzte Laufmeldung; Fremdbestände bleiben erhalten |
+| Backup | umgesetzt | Datenbank und Artikelbilder als ZIP sichern, herunterladen, wiederherstellen und löschen |
+| Systemaktualisierung | umgesetzt | Versions-, Container-, Datenbank-, Migrations-, Speicher- und Backup-Prüfungen anzeigen |
 | Eigene API-Anbindung | umgesetzt | Basis-URL, Authentifizierungsart und verfügbare REST-Ressourcen anzeigen |
 | API-Dokumentation | umgesetzt | Swagger/OpenAPI unter `/api/docs` |
-| Tests | begonnen | 16 bestandene API-Tests; Vitest ist konfiguriert, Frontend-Testfälle fehlen |
-| Weitere ERP-Module | geplant | Aufträge, Angebote, Buchhaltung, Produktionsübersicht, Lagerbewegungen, Rollen sowie Backup & Update zeigen Platzhalterseiten |
+| Tests | begonnen | 18 bestandene API-Tests; Vitest ist konfiguriert, Frontend-Testfälle fehlen |
+| Weitere ERP-Module | geplant | Aufträge, Angebote, Buchhaltung, Lagerbewegungen, Systemgrundeinstellungen sowie Rollen & Rechte zeigen Platzhalterseiten |
 
 ## 3. Bisher durchgeführte Arbeiten
 
@@ -70,6 +72,9 @@ Produktionsanweisungen bereits umgesetzt.
 - nginx zur Auslieferung der kompilierten SPA
 - Caddy als einziger veröffentlichter Einstiegspunkt auf Port 80/443
 - zusätzlicher Portainer-Stack für NAS-/Serverbetrieb mit vorkompilierten Images
+- getrennte persistente Ablagen für Datenbank, Artikelbilder und ZIP-Backups
+- PostgreSQL-Client sowie ZIP-Werkzeuge im API-Laufzeitimage für Sicherung und
+  Wiederherstellung
 - Lazy Loading der größeren Fachseiten zur Aufteilung des Frontend-Bundles
 
 ### 3.2 Identität und Sicherheit
@@ -110,7 +115,13 @@ Produktionsanweisungen bereits umgesetzt.
 - Einstellungsseite für Schnittstellenintervalle, Bestandsfreigabe und Laufstatus
 - Bestandsübersicht mit Kennzahlen, Bewertung und Suche
 - Produktionsanweisungen mit verschachteltem Editor für Elemente und Arbeitsschritte
+- Produktionsübersicht mit Suche und Anlage aus einer Anweisungsvorlage
+- administrative Backup-Verwaltung mit Sicherheitsabfragen vor Wiederherstellung
+  und Löschung
+- Update-Statusseite mit manueller Neuprüfung der Systemvoraussetzungen
 - Einstellungsseiten für Zahlungs- und Artikelarten
+- kompakte zentrale Liste aller Einstellungsbereiche statt dauerhaft aufgeklappter
+  Unterpunkte in der Hauptnavigation
 
 ### 3.4 Fachmodule
 
@@ -147,6 +158,8 @@ Produktionsanweisungen bereits umgesetzt.
   Projektzuordnung einer Adresse.
 - Namen werden getrimmt und unabhängig von Groß-/Kleinschreibung auf Duplikate
   geprüft.
+- Administratoren können bestehende Spezifikationen umbenennen; dabei gelten
+  dieselben Pflicht- und Eindeutigkeitsregeln wie bei der Anlage.
 - Eine verwendete Spezifikation kann aufgrund der restriktiven Datenbankbeziehung
   nicht gelöscht werden; die API übersetzt den Konflikt in eine Fachmeldung.
 
@@ -218,12 +231,43 @@ Produktionsanweisungen bereits umgesetzt.
   zur Verfügung. Verschachtelte Elemente werden bei Änderungen transaktional
   ersetzt; die Teileanzahl muss ihrer Anzahl entsprechen.
 
+**Produktionen**
+
+- Eine Produktion wird aus einer vorhandenen Produktionsanweisung erzeugt und
+  erhält eine automatisch fortlaufende Produktionsnummer.
+- Artikel, Name, Zeitraum, Anweisungsnummer, Elemente und Arbeitsschritte werden als
+  eigenständige Arbeitskopie übernommen. Spätere Änderungen an der Vorlage ändern
+  eine bereits angelegte Produktion nicht.
+- Für jedes Element muss mindestens ein Arbeitsschritt vorhanden sein. Neue
+  Produktionen beginnen mit dem Status `PLANNED`, ihre Schritte mit
+  `NOT_STARTED`.
+- Die Oberfläche listet und durchsucht Produktionen nach Nummer, Anweisung,
+  Artikel, Name und Status. Statusänderungen und die operative Bearbeitung der
+  Arbeitsschritte sind noch nicht implementiert.
+
 **Zahlungsarten**
 
 - Angemeldete Benutzer können die zentrale Liste lesen; Administratoren können
   Einträge anlegen und löschen.
 - Namen werden getrimmt und unabhängig von Groß-/Kleinschreibung auf Duplikate
   geprüft. Eine Verknüpfung mit Aufträgen oder Rechnungen existiert noch nicht.
+
+**Backup und Systemaktualisierung**
+
+- Administratoren können ZIP-Sicherungen erstellen, auflisten, herunterladen,
+  wiederherstellen und löschen. Eine Sicherung enthält einen PostgreSQL-Dump, die
+  Artikelbildablage und ein versioniertes Manifest; Programm- und Systemdateien
+  gehören nicht dazu.
+- Backup-Erstellung und Wiederherstellung sind innerhalb eines API-Prozesses
+  gegenseitig gesperrt. Archive und Pfade werden vor dem Zugriff validiert; eine
+  Wiederherstellung ersetzt Datenbank und Artikelbilder nach Bestätigung.
+- Die Update-Seite vergleicht den aktuellen Commit mit dem letzten erfolgreichen
+  Container-Workflow auf GitHub. Zusätzlich prüft sie Datenbank und Constraints,
+  Prisma-Migrationen, API-, Web- und Keycloak-Erreichbarkeit, freien Speicher sowie
+  Vorhandensein und Alter der jüngsten Sicherung.
+- Die Seite installiert keine Aktualisierung. Das Update erfolgt weiterhin durch
+  erneutes Laden des Docker-/Portainer-Stacks; ausstehende Migrationen werden beim
+  API-Start angewendet.
 
 **Externe Schnittstellen**
 
@@ -313,7 +357,7 @@ flowchart LR
     G -->|"/api/*"| A["NestJS API"]
     G -->|"/auth/*"| K["Keycloak"]
     A -->|"Prisma"| P[("PostgreSQL")]
-    A -->|"Produktbilder"| I[("persistentes Bild-Volume")]
+    A -->|"Produktbilder / Sicherungen"| I[("persistente Dateispeicher")]
     A -->|"OIDC / Admin API"| K
     A -->|"HTTPS / Client Credentials"| E["Externer Anbieter / Shopware 6"]
     K -->|"Realm-Daten"| P
@@ -487,9 +531,20 @@ Arbeitsart, Steuerungsoptionen, Zeiten und Seriennummernmodus. Elemente und Schr
 werden beim Löschen ihrer Eltern kaskadierend entfernt; das Löschen eines verwendeten
 Artikels bleibt durch `RESTRICT` gesperrt.
 
+### 5.14 Produktionen
+
+`Production` referenziert die zugrunde liegende Produktionsanweisung und den
+Artikel, speichert aber Anweisungsnummer, Namen, Zeitraum und Status zusätzlich als
+eigenen Arbeitsstand. `ProductionElement` und `ProductionStep` sind kaskadierende
+Kopien der Vorlagenelemente und -schritte. Die möglichen vorbereiteten
+Produktionsstatus sind `PLANNED`, `IN_PROGRESS`, `PAUSED`, `COMPLETED` und
+`PROBLEM`; Schritte beginnen mit `NOT_STARTED` und besitzen Felder für Start- und
+Abschlusszeitpunkt. Die derzeitige API legt Produktionen an und liest sie, verändert
+diese Statusfelder aber noch nicht.
+
 ## 6. API-Übersicht
 
-Alle 52 Endpunkte liegen unter `/api`. Bis auf den Healthcheck und die Auslieferung
+Alle 62 Endpunkte liegen unter `/api`. Bis auf den Healthcheck und die Auslieferung
 bereits gespeicherter Produktbilder wird ein gültiges Keycloak-Bearer-Token benötigt.
 
 | Methode | Pfad | Berechtigung | Zweck |
@@ -505,6 +560,7 @@ bereits gespeicherter Produktbilder wird ein gültiges Keycloak-Bearer-Token ben
 | `PATCH` | `/addresses/:id` | angemeldet | Adresse bearbeiten |
 | `GET` | `/specifications` | angemeldet | Spezifikationen auflisten |
 | `POST` | `/specifications` | `cms-erp-admin` | Spezifikation anlegen |
+| `PATCH` | `/specifications/:id` | `cms-erp-admin` | Spezifikation umbenennen |
 | `DELETE` | `/specifications/:id` | `cms-erp-admin` | unbenutzte Spezifikation löschen |
 | `GET` | `/articles` | angemeldet | Artikel mit Einheit auflisten |
 | `GET` | `/articles/:id` | angemeldet | vollständigen Artikel einschließlich Dateiverweisen laden |
@@ -530,6 +586,15 @@ bereits gespeicherter Produktbilder wird ein gültiges Keycloak-Bearer-Token ben
 | `POST` | `/production-instructions` | angemeldet | Produktionsanweisung anlegen |
 | `PATCH` | `/production-instructions/:id` | angemeldet | Produktionsanweisung vollständig bearbeiten |
 | `DELETE` | `/production-instructions/:id` | angemeldet | Produktionsanweisung löschen |
+| `GET` | `/productions` | angemeldet | Produktionen mit kopierten Elementen und Schritten auflisten |
+| `GET` | `/productions/:id` | angemeldet | einzelne Produktion laden |
+| `POST` | `/productions` | angemeldet | Produktion aus einer Anweisung erzeugen |
+| `GET` | `/backups` | `cms-erp-admin` | verfügbare ZIP-Sicherungen auflisten |
+| `POST` | `/backups` | `cms-erp-admin` | Datenbank- und Dateisicherung erstellen |
+| `GET` | `/backups/:id/download` | `cms-erp-admin` | Sicherung herunterladen |
+| `POST` | `/backups/:id/restore` | `cms-erp-admin` | Datenbank und Artikelbilder wiederherstellen |
+| `DELETE` | `/backups/:id` | `cms-erp-admin` | Sicherung löschen |
+| `GET` | `/system-update/status` | `cms-erp-admin` | Versions- und Systembereitschaft prüfen |
 | `GET` | `/external-integrations` | `cms-erp-admin` | externe Verbindungen auflisten |
 | `GET` | `/external-integrations/:id` | `cms-erp-admin` | Verbindung ohne Secret laden |
 | `POST` | `/external-integrations` | `cms-erp-admin` | Shopware-Verbindung anlegen |
@@ -552,13 +617,14 @@ Die interaktive Swagger-Dokumentation ist unter
 `class-validator` geprüft; unbekannte Felder weist die API zurück. Ressourcen-IDs
 werden an den Benutzer-, Spezifikations-, Artikel-, Einheiten-, Lagerplatz-,
 Zahlungsarten-, Produktions- und Schnittstellen-Endpunkten als UUID validiert.
+Backup-IDs sind streng validierte serverseitige Dateinamen und deshalb keine UUIDs.
 
 ## 7. Rollen- und Berechtigungskonzept
 
 | Rolle | Zugriff |
 | --- | --- |
-| `cms-erp-user` | Anmeldung und reguläre geschützte Funktionen, einschließlich Adress-, Artikel- und Produktionsanweisungspflege sowie lesendem Zugriff auf Lagerplätze, Zahlungs- und Artikelarten |
-| `cms-erp-admin` | zusätzlich Benutzerverwaltung, Pflege von Spezifikationen, Artikelarten, Artikeleinheiten und Zahlungsarten, schreibender Lagerplatzzugriff sowie vollständige Schnittstellenverwaltung |
+| `cms-erp-user` | Anmeldung und reguläre geschützte Funktionen, einschließlich Adress-, Artikel- und Produktionsanweisungspflege, Erzeugung und Einsicht von Produktionen sowie lesendem Zugriff auf Lagerplätze, Zahlungs- und Artikelarten |
+| `cms-erp-admin` | zusätzlich Benutzerverwaltung, Pflege von Spezifikationen, Artikelarten, Artikeleinheiten und Zahlungsarten, schreibender Lagerplatzzugriff, vollständige Schnittstellenverwaltung sowie Backup- und Systemstatusfunktionen |
 
 Die Oberfläche blendet beziehungsweise sperrt administrative Funktionen. Die
 maßgebliche Durchsetzung erfolgt jedoch serverseitig durch den Rollen-Guard.
@@ -617,9 +683,11 @@ Servicekonto-Rechte und das lokale Administratorkonto ab. Das Kennwort des
 Anwendungskontos stammt aus `KEYCLOAK_APP_ADMIN_PASSWORD`; die Compose-Konfiguration
 bricht ab, wenn diese Variable fehlt.
 
-Das benannte Volume `article_images` erhält die hochgeladenen Produktbilder über
-Neustarts und Container-Neuerstellungen hinweg. Die API verwendet darin
-`/app/data/article-images` als `ARTICLE_IMAGE_DIR`.
+Die benannten Volumes `article_images` und `backup_data` erhalten Produktbilder und
+ZIP-Sicherungen über Neustarts und Container-Neuerstellungen hinweg. Die API
+verwendet `/app/data/article-images` als `ARTICLE_IMAGE_DIR` und
+`/app/data/backups` als `BACKUP_DIR`. Buildargumente übergeben außerdem
+Anwendungsversion und Commit-SHA für den Updatevergleich.
 
 ### 8.4 Lokales Zertifikat unter macOS
 
@@ -642,8 +710,8 @@ docker compose down
 ```
 
 `docker compose down` erhält die Daten in den benannten Volumes. Der Zusatz `-v`
-löscht Datenbank, Produktbilder, Keycloak- und Caddy-Daten dauerhaft und darf nur
-bewusst verwendet werden.
+löscht Datenbank, Produktbilder, Sicherungen, Keycloak- und Caddy-Daten dauerhaft
+und darf nur bewusst verwendet werden.
 
 ### 8.6 Portainer- und Synology-Bereitstellung
 
@@ -654,11 +722,14 @@ Stack-Umgebungsvariablen übernommen. Wesentlich sind die von Browsern erreichba
 starke, getrennte Werte für Datenbank, Keycloak-Administration, Anwendungskonto,
 API-Client und `INTEGRATION_ENCRYPTION_KEY`.
 
-Der Stack persistiert PostgreSQL-Daten und Produktbilder in eigenen Volumes. Seine
-Caddy-Konfiguration veröffentlicht bewusst nur HTTP auf `${APP_PORT:-8080}`. Für
-einen Zugriff aus dem Internet muss davor ein vertrauenswürdiger TLS-Reverse-Proxy,
-beispielsweise der Synology Reverse Proxy, betrieben und `APP_ORIGIN` auf dessen
-öffentliche HTTPS-Adresse gesetzt werden.
+Der Stack bindet PostgreSQL-Daten, Produktbilder und Sicherungen standardmäßig aus
+`/volume1/docker/CMS_ERP/postgres`, `article-images` und `backups` in die Container
+ein. Diese Verzeichnisse müssen vor dem ersten Start existieren und können für ein
+anderes Synology-Volume in der Compose-Datei angepasst werden. Caddy veröffentlicht
+bewusst nur HTTP auf `${APP_PORT:-8090}`. Für einen Zugriff aus dem Internet muss
+davor ein vertrauenswürdiger TLS-Reverse-Proxy, beispielsweise der Synology Reverse
+Proxy, betrieben und `APP_ORIGIN` auf dessen öffentliche HTTPS-Adresse gesetzt
+werden.
 
 Der Workflow `.github/workflows/container-images.yml` führt zuerst den API-Teststage
 aus und baut anschließend API, Web, Gateway, Keycloak und PostgreSQL für
@@ -684,18 +755,18 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 
 ### Verifizierter Stand am 15. August 2026
 
-- Der Prisma-Client wurde aus dem aktuellen Schema generiert; anschließend liefen
-  der NestJS-Build und alle drei API-Testsuiten erfolgreich durch: 16 von 16 Tests
+- Der Prisma-Client entspricht dem aktuellen Schema; anschließend liefen der
+  NestJS-Build und alle vier API-Testsuiten erfolgreich durch: 18 von 18 Tests
   bestanden.
 - Abgedeckt sind insbesondere Schutzmaßnahmen externer Verbindungen,
-  Produktionsanweisungs-Validierung und das Weglassen großer Dateidaten in der
-  Artikelliste.
+  Produktionsanweisungs-Validierung, das Erzeugen von Produktionen als Kopie der
+  Vorlage und das Weglassen großer Dateidaten in der Artikelliste.
 - Der Web-TypeScript-Build und der Vite-Produktionsbuild laufen erfolgreich durch.
 - Vitest läuft erfolgreich, meldet aber ausdrücklich, dass keine Testdateien
   vorhanden sind.
 - Die Fachseiten werden per Lazy Loading in eigene JavaScript-Chunks aufgeteilt.
   Der größte initiale Chunk liegt nach dem aktuellen Produktionsbuild bei rund
-  378 kB; Vites Warnschwelle von 500 kB wird nicht überschritten.
+  379 kB; Vites Warnschwelle von 500 kB wird nicht überschritten.
 - `docker compose config --quiet` bestätigt die lokale Konfiguration. Auch
   `docker compose -f compose.portainer.yaml --env-file .env.portainer.example
   config --quiet` bestätigt den Portainer-Stack.
@@ -704,22 +775,27 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 
 ## 10. Bekannte Grenzen und offene Punkte
 
-- Die automatisierte Testabdeckung ist weiterhin gering: 16 API-Unit-Tests decken
+- Die automatisierte Testabdeckung ist weiterhin gering: 18 API-Unit-Tests decken
   ausgewählte Sicherheits- und Fachregeln ab; Integrations-, Browser- und
   Frontend-Testfälle fehlen.
-- Aufträge, Angebote, Buchhaltung, Produktionsübersicht, Lagerbewegungen, Rollen
-  sowie Backup & Update sind noch Platzhalter. Produktionsanweisungen und die
-  Bestandsübersicht sind dagegen umgesetzt.
+- Aufträge, Angebote, Buchhaltung, Lagerbewegungen, Systemgrundeinstellungen sowie
+  Rollen & Rechte sind noch Platzhalter. Produktionsanweisungen, Produktionen,
+  Bestandsübersicht, Backup und Update-Status sind dagegen umgesetzt.
 - Kunden-, Lieferanten- und Ansprechpartner-Unterseiten sind vorbereitet, besitzen
   aber noch keine eigene gefilterte Fachansicht.
 - Adressen können derzeit nicht gelöscht werden; die API bietet Auflisten, Anlegen
   und Bearbeiten.
 - Artikel können derzeit nicht gelöscht werden; die API bietet Auflisten, Anlegen
   und Bearbeiten.
+- Produktionen sind derzeit unveränderliche Kopien einer Anweisung. Obwohl das
+  Datenmodell Status, Schrittstatus sowie Start- und Abschlusszeitpunkte vorsieht,
+  fehlen API und Oberfläche für Start, Pause, Fortschrittsmeldung, Bestätigung,
+  Störung und Abschluss.
 - Alle angemeldeten Benutzer dürfen derzeit Adressen und Artikel anlegen und
-  bearbeiten. Lagerplätze können sie lesen; Änderungen sowie die gesamte
-  Schnittstellenverwaltung sind Administratoren vorbehalten. Falls feinere
-  Zuständigkeiten erforderlich sind, müssen zusätzliche Rollen eingeführt werden.
+  bearbeiten sowie Produktionsanweisungen und Produktionen verwalten. Lagerplätze
+  können sie lesen; Änderungen, Schnittstellen-, Backup- und Systemstatusverwaltung
+  sind Administratoren vorbehalten. Falls feinere Zuständigkeiten erforderlich
+  sind, müssen zusätzliche Rollen eingeführt werden.
 - Bankdaten, Lieferadressen, Ansprechpartner, Dokumentverweise und gekaufte Artikel
   sind flexible JSON-Felder. Eigene Tabellen werden erforderlich, sobald diese
   Daten separat gesucht, validiert, versioniert oder referenziert werden sollen.
@@ -753,9 +829,15 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
   produktionsgerechte Keycloak-Passwortrichtlinie ist noch festzulegen.
 - Konfiguration und mitgelieferte Konten sind ausdrücklich nicht für den
   Produktivbetrieb gehärtet.
+- Manuelle Backups und Wiederherstellung sind vorhanden, aber noch nicht geplant,
+  extern repliziert oder regelmäßig durch Wiederherstellungstests geprüft. Eine
+  Sicherung erfasst Datenbank und Artikelbilder, nicht jedoch Konfiguration,
+  Secrets, Programmdateien oder Caddy-/Keycloak-Laufzeitdaten.
+- Die Update-Seite prüft die Bereitschaft und zeigt einen verfügbaren Containerstand
+  an, führt aber selbst weder Image-Download noch Stack-Neustart oder Rollback aus.
 - Eine Container-CI und ein Portainer-Stack sind vorhanden; automatische
-  Deployment-Freigaben, Migrationstests, Observability, Backups und dokumentierte
-  Wiederherstellung fehlen weiterhin.
+  Deployment-Freigaben, Migrationstests und umfassende Observability fehlen
+  weiterhin.
 
 ## 11. Empfohlene nächste Schritte
 
@@ -772,12 +854,16 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
    erweitern; anschließend Export und Löschung fachlich konzipieren.
 6. Bestandsbewegungen als revisionsfähige Buchungen umsetzen, statt Bestände nur
    als aktuellen Zahlenwert zu speichern.
-7. Den Bestandszeitplan in einen robusten Hintergrund-Worker überführen und mit
+7. Den Produktionsablauf um Statusübergänge, Schrittbearbeitung, Zeitmessung,
+   Bestätigungen, Seriennummern und revisionsfähige Ereignisse erweitern.
+8. Den Bestandszeitplan in einen robusten Hintergrund-Worker überführen und mit
    verteilter Sperre, Wiederholungen, Laufhistorie und Monitoring absichern.
-8. Vor einem produktiven Einsatz eigenständige Schlüsselverwaltung und Rotation,
-   Secrets, Passwortregeln, Backups, Monitoring und extern vertrauenswürdiges TLS
+9. Backups automatisiert planen, verschlüsselt extern replizieren und durch
+   regelmäßige Wiederherstellungstests sowie Aufbewahrungsregeln absichern.
+10. Vor einem produktiven Einsatz eigenständige Schlüsselverwaltung und Rotation,
+   Secrets, Passwortregeln, Monitoring und extern vertrauenswürdiges TLS
    konzipieren.
-9. Die vorhandene Container-CI um Webtests, Migrationstest, Sicherheitsprüfung und
+11. Die vorhandene Container-CI um Webtests, Migrationstest, Sicherheitsprüfung und
    kontrollierte Deployment-Freigaben erweitern.
 
 ## 12. Wichtige Projektdateien
@@ -795,6 +881,9 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 | `apps/api/prisma/migrations/` | versionierte Datenbankänderungen |
 | `apps/api/src/core/auth/` | Authentifizierungs- und Rollenprüfung |
 | `apps/api/src/modules/` | API-Fachmodule |
+| `apps/api/src/modules/backups/` | Erstellung, Download und Wiederherstellung von Sicherungen |
+| `apps/api/src/modules/system-update/` | Versions- und Systembereitschaftsprüfung |
+| `apps/api/src/modules/productions/` | Produktionen als Arbeitskopien von Anweisungen |
 | `apps/api/src/modules/external-integrations/` | Verwaltung, Verschlüsselung und Test externer Verbindungen |
 | `apps/web/src/modules/` | Oberflächen der Fachmodule |
 | `infrastructure/keycloak/` | Realm, Benutzerprofil und Nachkonfiguration |
