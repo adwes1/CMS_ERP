@@ -89,12 +89,11 @@ const navigation: NavigationGroup[] = [
     label: 'Adressen',
     route: '#/',
     items: [
-      { label: 'Adressübersicht', route: '#/' },
-      { label: 'Kunden', route: '#/addresses/customers' },
-      { label: 'Lieferanten', route: '#/addresses/suppliers' },
-      { label: 'Ansprechpartner', route: '#/addresses/contacts' },
-    ],
-  },
+    { label: 'Adressübersicht', route: '#/' },
+    { label: 'Kunden', route: '#/addresses/customers' },
+    { label: 'Lieferanten', route: '#/addresses/suppliers' },
+  ],
+},
   {
     id: 'offers',
     label: 'Angebote',

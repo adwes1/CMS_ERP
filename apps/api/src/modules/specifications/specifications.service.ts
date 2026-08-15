@@ -27,6 +27,24 @@ export class SpecificationsService {
     }
   }
 
+  async update(id: string, name: string) {
+    const normalizedName = name.trim();
+    if (!normalizedName) throw new BadRequestException('Bezeichnung ist erforderlich');
+    const existing = await this.prisma.specification.findFirst({
+      where: { name: { equals: normalizedName, mode: 'insensitive' }, NOT: { id } },
+    });
+    if (existing) throw new ConflictException('Diese Spezifikation ist bereits vorhanden');
+    try {
+      return await this.prisma.specification.update({ where: { id }, data: { name: normalizedName } });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') throw new NotFoundException('Spezifikation wurde nicht gefunden');
+        if (error.code === 'P2002') throw new ConflictException('Diese Spezifikation ist bereits vorhanden');
+      }
+      throw error;
+    }
+  }
+
   async remove(id: string) {
     try {
       await this.prisma.specification.delete({ where: { id } });

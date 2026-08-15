@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../core/auth/roles.decorator';
 import { CreateSpecificationDto } from './dto/create-specification.dto';
@@ -20,6 +20,12 @@ export class SpecificationsController {
   @ApiCreatedResponse()
   create(@Body() input: CreateSpecificationDto) {
     return this.specifications.create(input.name);
+  }
+
+  @Roles('cms-erp-admin')
+  @Patch(':id')
+  update(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: CreateSpecificationDto) {
+    return this.specifications.update(id, input.name);
   }
 
   @Roles('cms-erp-admin')

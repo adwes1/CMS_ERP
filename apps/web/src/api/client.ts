@@ -377,6 +377,12 @@ export const listSpecifications = () => apiRequest<Specification[]>('/api/specif
 export const createSpecification = (name: string) =>
   apiRequest<Specification>('/api/specifications', { method: 'POST', body: JSON.stringify({ name }) });
 
+export const updateSpecification = (id: string, name: string) =>
+  apiRequest<Specification>(`/api/specifications/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+
 export const deleteSpecification = (id: string) =>
   apiRequest<void>(`/api/specifications/${encodeURIComponent(id)}`, { method: 'DELETE' });
 

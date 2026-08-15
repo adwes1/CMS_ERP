@@ -78,7 +78,7 @@ zuvor unter **Registries** mit einem GitHub-Paket-Token hinterlegt werden.
 Unter **Environment variables** mindestens die Werte aus
 `.env.portainer.example` eintragen. `APP_ORIGIN` ist die vollständige, vom Browser
 erreichbare Adresse ohne abschließenden Slash, zum Beispiel
-`http://192.168.1.20:8080`. `APP_PORT` muss denselben Port enthalten. Alle mit
+`http://192.168.1.20:8090`. `APP_PORT` muss denselben Port enthalten. Alle mit
 `CHANGE_ME` markierten Werte müssen durch eigene, sichere Kennwörter bzw. lange
 zufällige Secrets ersetzt werden. `KEYCLOAK_API_CLIENT_SECRET` und
 `INTEGRATION_ENCRYPTION_KEY` müssen unterschiedliche Werte erhalten.
@@ -90,6 +90,16 @@ aus dem Internet sollte davor HTTPS über Synology Reverse Proxy oder einen
 anderen TLS-Reverse-Proxy eingerichtet und dessen öffentliche URL als
 `APP_ORIGIN` verwendet werden.
 
+Vor dem ersten Deployment auf der Synology diese Verzeichnisse anlegen:
+
+```text
+/volume1/docker/CMS_ERP/postgres
+/volume1/docker/CMS_ERP/article-images
+/volume1/docker/CMS_ERP/backups
+```
+
 Nach erfolgreichem Deployment ist die Anwendung unter `APP_ORIGIN` erreichbar.
-Die Datenbank und Artikelbilder liegen in benannten Docker-Volumes und bleiben
-beim Aktualisieren oder erneuten Erstellen des Stacks erhalten.
+Die Datenbank, Artikelbilder und Sicherungen liegen damit sichtbar unter
+`/volume1/docker/CMS_ERP` und bleiben beim Aktualisieren oder erneuten Erstellen
+des Stacks erhalten. Falls das Docker-Share auf einem anderen Volume liegt, sind
+die drei Quellpfade in `compose.portainer.yaml` entsprechend anzupassen.

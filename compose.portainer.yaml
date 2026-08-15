@@ -1,11 +1,11 @@
 # Portainer: Diese Datei als Stack verwenden. APP_ORIGIN muss der von den
-# Browsern erreichbaren Adresse entsprechen, z. B. http://192.168.1.20:8080.
+# Browsern erreichbaren Adresse entsprechen, z. B. http://192.168.1.20:8090.
 services:
   gateway:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-adwes1}/cms-erp-gateway:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-8080}:80"
+      - "${APP_PORT:-8090}:80"
     depends_on:
       web:
         condition: service_healthy
@@ -41,8 +41,9 @@ services:
       BACKUP_DIR: /app/data/backups
       PORT: 3000
     volumes:
-      - article_images:/app/data/article-images
-      - backup_data:/app/data/backups
+      # Dauerhafte Anwendungsdaten auf der Synology
+      - /volume1/docker/CMS_ERP/article-images:/app/data/article-images
+      - /volume1/docker/CMS_ERP/backups:/app/data/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,7 +65,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-cms_erp}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD muss gesetzt sein}
     volumes:
-      - postgres_data:/var/lib/postgresql
+      # PostgreSQL 18 speichert seine Daten unter /var/lib/postgresql.
+      - /volume1/docker/CMS_ERP/postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cms_erp} -d ${POSTGRES_DB:-cms_erp}"]
       interval: 5s
@@ -115,8 +117,3 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
-
-volumes:
-  postgres_data:
-  article_images:
-  backup_data:
