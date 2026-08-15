@@ -24,7 +24,13 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
+ARG APP_VERSION=0.3.0a
+ARG APP_COMMIT_SHA=development
 ENV NODE_ENV=production
+ENV APP_VERSION=${APP_VERSION}
+ENV APP_COMMIT_SHA=${APP_COMMIT_SHA}
+LABEL org.opencontainers.image.version=${APP_VERSION}
+LABEL org.opencontainers.image.revision=${APP_COMMIT_SHA}
 RUN apk add --no-cache postgresql-client zip unzip
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma

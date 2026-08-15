@@ -142,6 +142,9 @@ export class ProductionInstructionsService {
     try {
       await this.prisma.productionInstruction.delete({ where: { id } });
     } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new BadRequestException('Die Produktionsanweisung wird bereits von einer Produktion verwendet und kann nicht gelöscht werden');
+      }
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw new NotFoundException('Produktionsanweisung wurde nicht gefunden');
       }

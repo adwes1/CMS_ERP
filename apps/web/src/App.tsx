@@ -48,6 +48,9 @@ const CronJobsPage = lazy(() => import('./modules/settings/CronJobsPage').then((
 const BackupPage = lazy(() => import('./modules/settings/BackupUpdatePage').then((module) => ({
   default: module.BackupPage,
 })));
+const UpdatePage = lazy(() => import('./modules/settings/UpdatePage').then((module) => ({
+  default: module.UpdatePage,
+})));
 const CustomerImportPage = lazy(() => import('./modules/settings/CustomerImportPage').then((module) => ({
   default: module.CustomerImportPage,
 })));
@@ -59,6 +62,9 @@ const UserManagementPage = lazy(() => import('./modules/settings/UserManagementP
 })));
 const ProductionInstructionsPage = lazy(() => import('./modules/production/ProductionInstructionsPage').then((module) => ({
   default: module.ProductionInstructionsPage,
+})));
+const ProductionOverviewPage = lazy(() => import('./modules/production/ProductionOverviewPage').then((module) => ({
+  default: module.ProductionOverviewPage,
 })));
 
 type NavigationItem = {
@@ -292,6 +298,7 @@ function App() {
     if (route === '#/inventory/items') return <ArticleOverviewPage />;
     if (route === '#/inventory/locations') return <WarehouseLocationsPage />;
     if (route === '#/inventory/stock') return <StockOverviewPage />;
+    if (route === '#/production/overview') return <ProductionOverviewPage />;
     if (route === '#/production/instructions') return <ProductionInstructionsPage />;
     if (route === '#/settings') {
       return (
@@ -362,6 +369,7 @@ function App() {
     if (route === '#/settings/api-connection') return <ApiConnectionPage />;
     if (route === '#/settings/cronjobs') return <CronJobsPage canManage={isAdmin} />;
     if (route === '#/settings/backup' || route === '#/settings/backup-update') return <BackupPage canManage={isAdmin} />;
+    if (route === '#/settings/update') return <UpdatePage canManage={isAdmin} />;
     return <PlaceholderModule route={route} />;
   };
 
@@ -430,7 +438,7 @@ function App() {
       >
         <Box component="span" sx={{ color: error ? 'error.main' : 'success.main' }}>● {error ? 'DEGRADED' : 'ONLINE'}</Box>
         <Box component="span" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {user?.displayName ?? user?.username ?? 'SITZUNG WIRD GELADEN'} · {isAdmin ? 'ADMIN' : 'BENUTZER'} · CMS_ERP 0.1.0
+          {user?.displayName ?? user?.username ?? 'SITZUNG WIRD GELADEN'} · {isAdmin ? 'ADMIN' : 'BENUTZER'} · CMS_ERP 0.3.0a
         </Box>
       </Box>
     </Box>

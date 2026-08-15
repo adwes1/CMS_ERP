@@ -1,7 +1,7 @@
 # CMS ERP – Projektdokumentation
 
 **Dokumentationsstand:** 15. August 2026
-**Projektversion:** 0.1.0  
+**Projektversion:** 0.3.0a
 **Status:** lauffähige lokale Entwicklungsgrundlage mit ersten Kernfunktionen
 
 ## 1. Projektziel

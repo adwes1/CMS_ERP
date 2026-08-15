@@ -32,6 +32,9 @@ services:
   api:
     build:
       context: ./apps/api
+      args:
+        APP_VERSION: ${APP_VERSION:-0.3.0a}
+        APP_COMMIT_SHA: ${APP_COMMIT_SHA:-development}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
@@ -46,6 +49,9 @@ services:
       INTEGRATION_ENCRYPTION_KEY: ${KEYCLOAK_API_CLIENT_SECRET}
       ARTICLE_IMAGE_DIR: /app/data/article-images
       BACKUP_DIR: /app/data/backups
+      UPDATE_REPOSITORY: ${UPDATE_REPOSITORY:-adwes1/CMS_ERP}
+      UPDATE_BRANCH: ${UPDATE_BRANCH:-main}
+      UPDATE_WORKFLOW: ${UPDATE_WORKFLOW:-container-images.yml}
       PORT: 3000
     volumes:
       - article_images:/app/data/article-images

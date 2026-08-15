@@ -39,6 +39,9 @@ services:
       INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:?INTEGRATION_ENCRYPTION_KEY muss gesetzt sein}
       ARTICLE_IMAGE_DIR: /app/data/article-images
       BACKUP_DIR: /app/data/backups
+      UPDATE_REPOSITORY: ${UPDATE_REPOSITORY:-adwes1/CMS_ERP}
+      UPDATE_BRANCH: ${UPDATE_BRANCH:-main}
+      UPDATE_WORKFLOW: ${UPDATE_WORKFLOW:-container-images.yml}
       PORT: 3000
     volumes:
       # Dauerhafte Anwendungsdaten auf der Synology

@@ -100,6 +100,7 @@ model Article {
   purchasing      Json?
   externalReferences ExternalEntityReference[]
   productionInstructions ProductionInstruction[]
+  productions      Production[]
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -119,12 +120,78 @@ model ProductionInstruction {
   completionDate    DateTime                       @db.Date @map("completion_date")
   partCount         Int                            @map("part_count")
   elements          ProductionInstructionElement[]
+  productions       Production[]
   createdAt         DateTime                       @default(now()) @map("created_at")
   updatedAt         DateTime                       @updatedAt @map("updated_at")
 
   @@index([articleId])
   @@index([startDate])
   @@map("production_instructions")
+}
+
+model Production {
+  id                      String              @id @default(uuid()) @db.Uuid
+  productionNumber        Int                 @unique @default(autoincrement()) @map("production_number")
+  productionInstructionId String              @db.Uuid @map("production_instruction_id")
+  productionInstruction   ProductionInstruction @relation(fields: [productionInstructionId], references: [id], onDelete: Restrict)
+  instructionNumber       Int                 @map("instruction_number")
+  articleId               String              @db.Uuid @map("article_id")
+  article                 Article             @relation(fields: [articleId], references: [id], onDelete: Restrict)
+  name                    String
+  startDate               DateTime            @db.Date @map("start_date")
+  completionDate          DateTime            @db.Date @map("completion_date")
+  status                  String              @default("PLANNED")
+  elements                ProductionElement[]
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+
+  @@index([productionInstructionId])
+  @@index([articleId])
+  @@index([status])
+  @@map("productions")
+}
+
+model ProductionElement {
+  id           String           @id @default(uuid()) @db.Uuid
+  productionId String           @db.Uuid @map("production_id")
+  production   Production       @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  position     Int
+  name         String
+  steps        ProductionStep[]
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  @@unique([productionId, position])
+  @@map("production_elements")
+}
+
+model ProductionStep {
+  id                        String            @id @default(uuid()) @db.Uuid
+  elementId                 String            @db.Uuid @map("element_id")
+  element                   ProductionElement @relation(fields: [elementId], references: [id], onDelete: Cascade)
+  position                  Int
+  name                      String
+  workType                  String            @map("work_type")
+  controlActive             Boolean           @default(true) @map("control_active")
+  employeeInstruction       String?           @map("employee_instruction")
+  employeeInstructionActive Boolean           @default(false) @map("employee_instruction_active")
+  confirmationRequired      Boolean           @default(false) @map("confirmation_required")
+  plannedHours              Int               @default(0) @map("planned_hours")
+  plannedMinutes            Int               @default(0) @map("planned_minutes")
+  timeEstimateActive        Boolean           @default(false) @map("time_estimate_active")
+  timerHours                Int               @default(0) @map("timer_hours")
+  timerMinutes              Int               @default(0) @map("timer_minutes")
+  timerActive               Boolean           @default(false) @map("timer_active")
+  serialNumberMode          String            @default("NONE") @map("serial_number_mode")
+  serialNumberActive        Boolean           @default(false) @map("serial_number_active")
+  status                    String            @default("NOT_STARTED")
+  startedAt                 DateTime?         @map("started_at")
+  completedAt               DateTime?         @map("completed_at")
+  createdAt                 DateTime          @default(now()) @map("created_at")
+  updatedAt                 DateTime          @updatedAt @map("updated_at")
+
+  @@unique([elementId, position])
+  @@map("production_steps")
 }
 
 model ProductionInstructionElement {

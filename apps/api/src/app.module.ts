@@ -12,10 +12,12 @@ import { ExternalIntegrationsModule } from './modules/external-integrations/exte
 import { ArticleImagesModule } from './modules/article-images/article-images.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
 import { ProductionInstructionsModule } from './modules/production-instructions/production-instructions.module';
+import { ProductionsModule } from './modules/productions/productions.module';
 import { ArticleTypeSettingsModule } from './modules/article-type-settings/article-type-settings.module';
 import { BackupsModule } from './modules/backups/backups.module';
+import { SystemUpdateModule } from './modules/system-update/system-update.module';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, HealthModule, UsersModule, AddressesModule, SpecificationsModule, ArticlesModule, ArticleUnitsModule, ArticleTypeSettingsModule, WarehouseLocationsModule, ExternalIntegrationsModule, ArticleImagesModule, PaymentMethodsModule, ProductionInstructionsModule, BackupsModule],
+  imports: [DatabaseModule, AuthModule, HealthModule, UsersModule, AddressesModule, SpecificationsModule, ArticlesModule, ArticleUnitsModule, ArticleTypeSettingsModule, WarehouseLocationsModule, ExternalIntegrationsModule, ArticleImagesModule, PaymentMethodsModule, ProductionInstructionsModule, ProductionsModule, BackupsModule, SystemUpdateModule],
 })
 export class AppModule {}

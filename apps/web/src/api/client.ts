@@ -24,6 +24,29 @@ export type BackupEntry = {
   sizeBytes: number;
 };
 
+export type SystemUpdateStatus = {
+  version: {
+    status: 'current' | 'update_available' | 'unknown';
+    currentVersion: string;
+    currentCommit: string;
+    latestCommit: string | null;
+    latestPublishedAt: string | null;
+    repositoryUrl: string;
+    latestUrl: string | null;
+    branch: string;
+    message?: string;
+  };
+  checks: Array<{
+    id: string;
+    label: string;
+    status: 'ok' | 'warning' | 'error';
+    message: string;
+    details?: Record<string, string | number>;
+  }>;
+  systemReady: boolean;
+  checkedAt: string;
+};
+
 export type CreateUserInput = {
   username: string;
   password: string;
@@ -269,6 +292,38 @@ export type ProductionInstruction = {
   updatedAt: string;
 };
 
+export type ProductionStep = ProductionInstructionStepInput & {
+  id: string;
+  position: number;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'PAUSED' | 'COMPLETED' | 'PROBLEM';
+  startedAt?: string | null;
+  completedAt?: string | null;
+};
+
+export type ProductionElement = {
+  id: string;
+  position: number;
+  name: string;
+  steps: ProductionStep[];
+};
+
+export type Production = {
+  id: string;
+  productionNumber: number;
+  productionInstructionId: string;
+  productionInstruction: Pick<ProductionInstruction, 'id' | 'instructionNumber' | 'name' | 'updatedAt'>;
+  instructionNumber: number;
+  articleId: string;
+  article: Pick<Article, 'id' | 'articleNumber' | 'name'>;
+  name: string;
+  startDate: string;
+  completionDate: string;
+  status: 'PLANNED' | 'IN_PROGRESS' | 'PAUSED' | 'COMPLETED' | 'PROBLEM';
+  elements: ProductionElement[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ProductionInstructionSummary = Omit<ProductionInstruction, 'elements'> & {
   elementCount: number;
   stepCount: number;
@@ -307,6 +362,9 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 export async function getCurrentUser(): Promise<UserProfile> {
   return apiRequest<UserProfile>('/api/users/me');
 }
+
+export const getSystemUpdateStatus = () =>
+  apiRequest<SystemUpdateStatus>('/api/system-update/status');
 
 export const listBackups = () => apiRequest<BackupEntry[]>('/api/backups');
 
@@ -422,6 +480,14 @@ export const updateProductionInstruction = (id: string, input: ProductionInstruc
 
 export const deleteProductionInstruction = (id: string) =>
   apiRequest<void>(`/api/production-instructions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
+export const listProductions = () => apiRequest<Production[]>('/api/productions');
+
+export const createProduction = (productionInstructionId: string) =>
+  apiRequest<Production>('/api/productions', {
+    method: 'POST',
+    body: JSON.stringify({ productionInstructionId }),
+  });
 
 export const uploadArticleImage = (name: string, dataUrl: string) =>
   apiRequest<{ reference: string; mimeType: string }>('/api/article-images', {

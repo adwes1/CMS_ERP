@@ -80,7 +80,7 @@ export function SettingsPage({ onOpenUsers, onOpenSpecifications, onOpenArticles
         </Typography>
         <Button onClick={onOpenUpdate} fullWidth sx={{ justifyContent: 'space-between', py: 1.5, borderTop: 1, borderBottom: 1, borderColor: 'divider' }}>
           <span>UPDATE</span>
-          <Box component="span" sx={{ color: 'warning.main' }}>GEPLANT &gt;</Box>
+          <Box component="span" sx={{ color: 'success.main' }}>BEREIT &gt;</Box>
         </Button>
         <Typography color="text.secondary" sx={{ py: 1.5 }}>
           Systemaktualisierungen zentral prüfen und verwalten.
