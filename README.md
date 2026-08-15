@@ -21,7 +21,7 @@ Danach:
 Lokaler Anwendungsbenutzer:
 
 - Benutzername: `admin`
-- Kennwort: Wert von `KEYCLOAK_APP_ADMIN_PASSWORD` in `.env`
+- Kennwort: `admin` (lokale Entwicklungsumgebung)
 
 Keycloak-Administration:
 
@@ -59,3 +59,37 @@ Die ausführliche Beschreibung des aktuellen Funktionsstands, der API, des
 Datenmodells, des Betriebs und der offenen Punkte steht in
 [docs/PROJEKTDOKUMENTATION.md](./docs/PROJEKTDOKUMENTATION.md). Verbindliche
 Architekturregeln stehen ergänzend in [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+## Installation auf Synology mit Portainer
+
+Für eine Installation auf einer Synology ist die separate Datei
+[`compose.portainer.yaml`](./compose.portainer.yaml) vorgesehen. Sie verwendet
+fertige Multi-Arch-Images aus der GitHub Container Registry und funktioniert
+dadurch sowohl auf Intel-/AMD- als auch auf ARM-Synology-Systemen. Nach einem Push
+auf `main` baut der Workflow `.github/workflows/container-images.yml` die Images.
+
+Den Stack in Portainer über **Stacks → Add stack → Repository** anlegen, das
+Git-Repository eintragen und als Compose-Pfad `compose.portainer.yaml` verwenden.
+Alternativ kann die YAML im Web-Editor eingefügt werden. Bei einem Fork muss
+`IMAGE_NAMESPACE` auf den eigenen, kleingeschriebenen GitHub-Benutzernamen bzw.
+Organisationsnamen gesetzt werden. Sind die GHCR-Pakete privat, muss `ghcr.io`
+zuvor unter **Registries** mit einem GitHub-Paket-Token hinterlegt werden.
+
+Unter **Environment variables** mindestens die Werte aus
+`.env.portainer.example` eintragen. `APP_ORIGIN` ist die vollständige, vom Browser
+erreichbare Adresse ohne abschließenden Slash, zum Beispiel
+`http://192.168.1.20:8080`. `APP_PORT` muss denselben Port enthalten. Alle mit
+`CHANGE_ME` markierten Werte müssen durch eigene, sichere Kennwörter bzw. lange
+zufällige Secrets ersetzt werden. `KEYCLOAK_API_CLIENT_SECRET` und
+`INTEGRATION_ENCRYPTION_KEY` müssen unterschiedliche Werte erhalten.
+
+Ein geeignetes Secret kann beispielsweise mit `openssl rand -hex 32` erzeugt
+werden. Die mitgelieferte Portainer-Variante verwendet zunächst HTTP und sollte
+so nur im vertrauenswürdigen Heim-/Firmennetz betrieben werden. Für einen Zugriff
+aus dem Internet sollte davor HTTPS über Synology Reverse Proxy oder einen
+anderen TLS-Reverse-Proxy eingerichtet und dessen öffentliche URL als
+`APP_ORIGIN` verwendet werden.
+
+Nach erfolgreichem Deployment ist die Anwendung unter `APP_ORIGIN` erreichbar.
+Die Datenbank und Artikelbilder liegen in benannten Docker-Volumes und bleiben
+beim Aktualisieren oder erneuten Erstellen des Stacks erhalten.

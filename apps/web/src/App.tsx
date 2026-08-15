@@ -45,6 +45,9 @@ const InterfaceDataExchangePage = lazy(() => import('./modules/settings/Interfac
 const CronJobsPage = lazy(() => import('./modules/settings/CronJobsPage').then((module) => ({
   default: module.CronJobsPage,
 })));
+const BackupPage = lazy(() => import('./modules/settings/BackupUpdatePage').then((module) => ({
+  default: module.BackupPage,
+})));
 const CustomerImportPage = lazy(() => import('./modules/settings/CustomerImportPage').then((module) => ({
   default: module.CustomerImportPage,
 })));
@@ -53,6 +56,9 @@ const ArticleImportPage = lazy(() => import('./modules/settings/ArticleImportPag
 })));
 const UserManagementPage = lazy(() => import('./modules/settings/UserManagementPage').then((module) => ({
   default: module.UserManagementPage,
+})));
+const ProductionInstructionsPage = lazy(() => import('./modules/production/ProductionInstructionsPage').then((module) => ({
+  default: module.ProductionInstructionsPage,
 })));
 
 type NavigationItem = {
@@ -115,6 +121,7 @@ const navigation: NavigationGroup[] = [
     route: '#/production/overview',
     items: [
       { label: 'Produktionsübersicht', route: '#/production/overview' },
+      { label: 'Produktionsanweisung', route: '#/production/instructions' },
     ],
   },
   {
@@ -141,6 +148,8 @@ const navigation: NavigationGroup[] = [
       { label: 'Schnittstellen', route: '#/settings/interfaces' },
       { label: 'API-Anbindung', route: '#/settings/api-connection' },
       { label: 'Cronjobs', route: '#/settings/cronjobs' },
+      { label: 'Backup', route: '#/settings/backup' },
+      { label: 'Update', route: '#/settings/update' },
       { label: 'Rollen & Rechte', route: '#/settings/roles' },
     ],
   },
@@ -284,6 +293,7 @@ function App() {
     if (route === '#/inventory/items') return <ArticleOverviewPage />;
     if (route === '#/inventory/locations') return <WarehouseLocationsPage />;
     if (route === '#/inventory/stock') return <StockOverviewPage />;
+    if (route === '#/production/instructions') return <ProductionInstructionsPage />;
     if (route === '#/settings') {
       return (
         <SettingsPage
@@ -294,6 +304,8 @@ function App() {
           onOpenInterfaces={() => navigate('#/settings/interfaces')}
           onOpenApiConnection={() => navigate('#/settings/api-connection')}
           onOpenCronJobs={() => navigate('#/settings/cronjobs')}
+          onOpenBackup={() => navigate('#/settings/backup')}
+          onOpenUpdate={() => navigate('#/settings/update')}
         />
       );
     }
@@ -350,6 +362,7 @@ function App() {
     }
     if (route === '#/settings/api-connection') return <ApiConnectionPage />;
     if (route === '#/settings/cronjobs') return <CronJobsPage canManage={isAdmin} />;
+    if (route === '#/settings/backup' || route === '#/settings/backup-update') return <BackupPage canManage={isAdmin} />;
     return <PlaceholderModule route={route} />;
   };
 

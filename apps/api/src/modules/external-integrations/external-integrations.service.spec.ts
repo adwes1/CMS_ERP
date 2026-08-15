@@ -11,6 +11,7 @@ describe('ExternalIntegrationsService URL-Schutz', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     delete process.env.INTEGRATION_ENCRYPTION_KEY;
   });
 
@@ -45,5 +46,21 @@ describe('ExternalIntegrationsService URL-Schutz', () => {
     await expect(service['readBytes'](response, 1_000)).rejects.toThrow(
       'Die Antwort der Schnittstelle ist zu groß',
     );
+  });
+
+  it('begrenzt auch Antworten des Lagerbestandsimports', async () => {
+    jest.spyOn(service as never, 'getShopwareAccess' as never).mockResolvedValue({
+      baseUrl: 'https://example.com',
+      accessToken: 'token',
+    } as never);
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: 'x'.repeat(8 * 1024 * 1024) })),
+    );
+
+    await expect(service['fetchShopwareStockPage']({
+      baseUrl: 'https://example.com',
+      clientId: 'client',
+      clientSecretEncrypted: 'encrypted',
+    }, 1, 100)).rejects.toThrow('Die Antwort der Schnittstelle ist zu groß');
   });
 });

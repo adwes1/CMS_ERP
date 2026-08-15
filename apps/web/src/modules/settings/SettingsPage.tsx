@@ -8,9 +8,11 @@ type SettingsPageProps = {
   onOpenInterfaces: () => void;
   onOpenApiConnection: () => void;
   onOpenCronJobs: () => void;
+  onOpenBackup: () => void;
+  onOpenUpdate: () => void;
 };
 
-export function SettingsPage({ onOpenUsers, onOpenSpecifications, onOpenArticles, onOpenPaymentMethods, onOpenInterfaces, onOpenApiConnection, onOpenCronJobs }: SettingsPageProps) {
+export function SettingsPage({ onOpenUsers, onOpenSpecifications, onOpenArticles, onOpenPaymentMethods, onOpenInterfaces, onOpenApiConnection, onOpenCronJobs, onOpenBackup, onOpenUpdate }: SettingsPageProps) {
   return (
     <Stack spacing={3}>
       <Box>
@@ -68,6 +70,20 @@ export function SettingsPage({ onOpenUsers, onOpenSpecifications, onOpenArticles
         </Button>
         <Typography color="text.secondary" sx={{ py: 1.5 }}>
           Abrufintervalle externer Schnittstellen planen und aktivieren.
+        </Typography>
+        <Button onClick={onOpenBackup} fullWidth sx={{ justifyContent: 'space-between', py: 1.5, borderTop: 1, borderBottom: 1, borderColor: 'divider' }}>
+          <span>BACKUP</span>
+          <Box component="span" sx={{ color: 'success.main' }}>BEREIT &gt;</Box>
+        </Button>
+        <Typography color="text.secondary" sx={{ py: 1.5 }}>
+          Datensicherungen der Datenbank und der verknüpften Dateien verwalten.
+        </Typography>
+        <Button onClick={onOpenUpdate} fullWidth sx={{ justifyContent: 'space-between', py: 1.5, borderTop: 1, borderBottom: 1, borderColor: 'divider' }}>
+          <span>UPDATE</span>
+          <Box component="span" sx={{ color: 'warning.main' }}>GEPLANT &gt;</Box>
+        </Button>
+        <Typography color="text.secondary" sx={{ py: 1.5 }}>
+          Systemaktualisierungen zentral prüfen und verwalten.
         </Typography>
       </Box>
     </Stack>

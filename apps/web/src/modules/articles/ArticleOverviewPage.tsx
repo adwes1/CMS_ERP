@@ -24,18 +24,25 @@ import { CloseOutlined, DeleteOutline, SaveOutlined } from '@mui/icons-material'
 import {
   createArticle,
   getArticle,
+  listAddresses,
+  listArticleTypeSettings,
   listArticleUnits,
   listArticles,
+  listProductionInstructions,
   listWarehouseLocations,
   uploadArticleImage,
   updateArticle,
+  type Address,
   type Article,
+  type ArticleType,
+  type ArticleTypeSetting,
   type ArticleUnit,
   type CreateArticleInput,
+  type ProductionInstructionSummary,
   type WarehouseLocation,
 } from '../../api/client';
 
-type Section = 'master' | 'stockEntries' | 'purchasePrices' | 'salePrices' | 'positions' | 'variants' | 'externalNumbers' | 'files' | 'purchasing';
+type Section = 'master' | 'stockEntries' | 'purchasePrices' | 'salePrices' | 'positions' | 'production' | 'variants' | 'externalNumbers' | 'files' | 'purchasing';
 type Collection = 'stockEntries' | 'purchasePrices' | 'salePrices' | 'positions' | 'externalNumbers' | 'files';
 
 const sections: { id: Section; label: string }[] = [
@@ -44,23 +51,22 @@ const sections: { id: Section; label: string }[] = [
   { id: 'purchasePrices', label: 'EK-Preisentwicklung' },
   { id: 'salePrices', label: 'VK-Preisentwicklung' },
   { id: 'positions', label: 'Positionen' },
+  { id: 'production', label: 'Produktion' },
   { id: 'variants', label: 'Varianten' },
   { id: 'externalNumbers', label: 'Fremdnummern' },
   { id: 'files', label: 'Dateien' },
   { id: 'purchasing', label: 'Einkauf' },
 ];
 
-const typeLabels: Record<Article['type'], string> = {
-  VERKAUFSARTIKEL: 'Verkaufsartikel',
+const defaultTypeLabels: Record<Article['type'], string> = {
+  VERKAUFSARTIKEL: 'Einkaufsartikel',
   PRODUKTIONSARTIKEL: 'Produktionsartikel',
+  PRODUKTIONSMATERIAL: 'Produktionsmaterial',
   STUECKLISTENARTIKEL: 'Stücklistenartikel',
   DIGITAL_DOWNLOAD: 'Digital-Download',
   RABATT_GUTSCHEIN: 'Rabatt-Gutschein',
   VERSANDGEBUEHREN: 'Versandgebühren',
 };
-
-const requiresPositions = (type: Article['type']) =>
-  type === 'PRODUKTIONSARTIKEL' || type === 'STUECKLISTENARTIKEL';
 
 const emptyForm = (unitId = ''): CreateArticleInput => ({
   articleNumber: '',
@@ -76,12 +82,13 @@ const emptyForm = (unitId = ''): CreateArticleInput => ({
   widthCm: '',
   heightCm: '',
   notes: '',
-  purchasePrices: [{ netPrice: '', validFrom: new Date().toISOString().slice(0, 10), note: '' }],
+  purchasePrices: [{ supplierAddressId: '', supplierName: '', supplierAddressNumber: '', netPrice: '', validFrom: new Date().toISOString().slice(0, 10), note: '' }],
   salePrices: [{ netPrice: '', validFrom: new Date().toISOString().slice(0, 10), note: '' }],
   positions: [],
   externalNumbers: [],
   files: [],
   variantIds: [],
+  useAutomaticArticleNumber: true,
   purchasing: {
     supplier: '', supplierArticleNumber: '', purchaseUnit: 'Stk.', minimumOrderQuantity: '',
     packagingUnit: '', deliveryTimeDays: '', orderNote: '',
@@ -98,11 +105,18 @@ const fieldGrid = {
 const isPopulated = (row: Record<string, string>) => Object.values(row).some((value) => value.trim());
 const warehouseLocationLabel = (entry: WarehouseLocation) => `${entry.location} / ${entry.shelf} / ${entry.position}`;
 const PRODUCT_IMAGE_CATEGORY = 'Produktabbildung';
+const productionInstructionNumber = (value: number) => String(value).padStart(6, '0');
+const addressNumber = (value: number) => `ADR-${String(value).padStart(6, '0')}`;
+const addressName = (address: Address) => address.company || [address.firstName, address.lastName].filter(Boolean).join(' ') || addressNumber(address.addressNumber);
+const supplierLabel = (address: Address) => [addressName(address), addressNumber(address.addressNumber), address.city].filter(Boolean).join(' · ');
 
 export function ArticleOverviewPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [units, setUnits] = useState<ArticleUnit[]>([]);
   const [warehouseLocations, setWarehouseLocations] = useState<WarehouseLocation[]>([]);
+  const [productionInstructions, setProductionInstructions] = useState<ProductionInstructionSummary[]>([]);
+  const [suppliers, setSuppliers] = useState<Address[]>([]);
+  const [articleTypeSettings, setArticleTypeSettings] = useState<ArticleTypeSetting[]>([]);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Article | null>(null);
@@ -114,15 +128,27 @@ export function ArticleOverviewPage() {
   const deferredSearch = useDeferredValue(search);
 
   useEffect(() => {
-    Promise.all([listArticles(), listArticleUnits(), listWarehouseLocations()])
-      .then(([articleResult, unitResult, warehouseLocationResult]) => {
+    Promise.all([listArticles(), listArticleUnits(), listWarehouseLocations(), listProductionInstructions(), listAddresses({ page: 1, pageSize: 1000 }), listArticleTypeSettings()])
+      .then(([articleResult, unitResult, warehouseLocationResult, productionInstructionResult, addressResult, articleTypeSettingResult]) => {
         setArticles(articleResult);
         setUnits(unitResult);
         setWarehouseLocations(warehouseLocationResult);
+        setProductionInstructions(productionInstructionResult);
+        setSuppliers(addressResult.items.filter((address) => address.type === 'LIEFERANT' || address.type === 'BEIDES'));
+        setArticleTypeSettings(articleTypeSettingResult);
       })
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const typeLabels = useMemo(() => articleTypeSettings.reduce<Record<ArticleType, string>>(
+    (labels, setting) => ({ ...labels, [setting.type]: setting.label }),
+    { ...defaultTypeLabels },
+  ), [articleTypeSettings]);
+  const typeTextColors = useMemo(() => articleTypeSettings.reduce<Partial<Record<ArticleType, string>>>(
+    (colors, setting) => ({ ...colors, [setting.type]: setting.textColor }),
+    {},
+  ), [articleTypeSettings]);
 
   const filteredArticles = useMemo(() => {
     const term = deferredSearch.trim().toLocaleLowerCase('de');
@@ -131,10 +157,19 @@ export function ArticleOverviewPage() {
       article.articleNumber, article.name, typeLabels[article.type], article.stock, article.unit.name,
       ...(article.externalNumbers ?? []).flatMap((row) => Object.values(row)),
     ].join(' ').toLocaleLowerCase('de').includes(term));
-  }, [articles, deferredSearch]);
+  }, [articles, deferredSearch, typeLabels]);
 
   const setField = (field: keyof CreateArticleInput, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const setArticleType = (type: ArticleType) => {
+    const setting = articleTypeSettings.find((entry) => entry.type === type);
+    setForm((current) => ({
+      ...current,
+      type,
+      articleNumber: !editing && current.useAutomaticArticleNumber ? (setting?.nextArticleNumber ?? '') : current.articleNumber,
+    }));
   };
 
   const setPurchasingField = (field: string, value: string) => {
@@ -145,6 +180,42 @@ export function ArticleOverviewPage() {
     setForm((current) => ({
       ...current,
       [collection]: (current[collection] ?? []).map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row),
+    }));
+  };
+
+  const setPositionArticle = (index: number, article: Article | null) => {
+    setForm((current) => ({
+      ...current,
+      positions: (current.positions ?? []).map((row, rowIndex) => rowIndex === index ? {
+        ...row,
+        articleNumber: article?.articleNumber ?? '',
+        description: article?.name ?? '',
+        unit: article?.unit.name ?? '',
+      } : row),
+    }));
+  };
+
+  const setPositionSearch = (index: number, field: 'articleNumber' | 'description', value: string) => {
+    setForm((current) => ({
+      ...current,
+      positions: (current.positions ?? []).map((row, rowIndex) => rowIndex === index ? {
+        ...row,
+        articleNumber: field === 'articleNumber' ? value : '',
+        description: field === 'description' ? value : '',
+        unit: '',
+      } : row),
+    }));
+  };
+
+  const setPurchasePriceSupplier = (index: number, supplier: Address | null) => {
+    setForm((current) => ({
+      ...current,
+      purchasePrices: (current.purchasePrices ?? []).map((row, rowIndex) => rowIndex === index ? {
+        ...row,
+        supplierAddressId: supplier?.id ?? '',
+        supplierName: supplier ? addressName(supplier) : '',
+        supplierAddressNumber: supplier ? addressNumber(supplier.addressNumber) : '',
+      } : row),
     }));
   };
 
@@ -209,7 +280,9 @@ export function ArticleOverviewPage() {
 
   const startCreate = () => {
     setEditing(null);
-    setForm(emptyForm(units.find((unit) => unit.name === 'Stück')?.id ?? units[0]?.id ?? ''));
+    const values = emptyForm(units.find((unit) => unit.name === 'Stück')?.id ?? units[0]?.id ?? '');
+    values.articleNumber = articleTypeSettings.find((setting) => setting.type === values.type)?.nextArticleNumber ?? '';
+    setForm(values);
     setSection('master');
     setError(null);
     setOpen(true);
@@ -239,6 +312,7 @@ export function ArticleOverviewPage() {
       files: values.files ?? [],
       variantIds: (variantLinks ?? []).map((link) => link.variantArticleId),
       purchasing: values.purchasing ?? emptyForm().purchasing,
+      useAutomaticArticleNumber: false,
     });
     setSection('master');
     setError(null);
@@ -255,9 +329,9 @@ export function ArticleOverviewPage() {
   };
 
   const save = async () => {
-    if (!form.articleNumber.trim() || !form.name.trim() || !form.unitId) {
+    if (!form.articleNumber.trim() || !form.name.trim() || !form.type) {
       setSection('master');
-      setError('Bitte Artikelnummer, Bezeichnung und Einheit angeben.');
+      setError('Bitte Artikelnummer, Bezeichnung und Artikeltyp angeben.');
       return;
     }
     const cleanPositions = (form.positions ?? []).filter(isPopulated);
@@ -273,28 +347,8 @@ export function ArticleOverviewPage() {
       row.warehouseLocationId && warehouseLocations.some((entry) => entry.id === row.warehouseLocationId)
       && row.stock !== '' && row.minimumStock !== '',
     );
-    if (!validStockEntries.length || validStockEntries.length !== (form.stockEntries ?? []).length) {
-      setSection('stockEntries');
-      setError('Bitte mindestens einen angelegten Lagerplatz mit Bestand und Mindestbestand vollständig auswählen.');
-      return;
-    }
     const validPurchasePrices = (form.purchasePrices ?? []).filter((row) => row.netPrice?.trim() && row.validFrom?.trim());
     const validSalePrices = (form.salePrices ?? []).filter((row) => row.netPrice?.trim() && row.validFrom?.trim());
-    if (!validPurchasePrices.length) {
-      setSection('purchasePrices');
-      setError('Bitte mindestens einen EK-Nettopreis mit Gültigkeitsdatum angeben.');
-      return;
-    }
-    if (!validSalePrices.length) {
-      setSection('salePrices');
-      setError('Bitte mindestens einen VK-Nettopreis mit Gültigkeitsdatum angeben.');
-      return;
-    }
-    if (requiresPositions(form.type) && cleanPositions.length < 2) {
-      setSection('positions');
-      setError('Produktions- und Stücklistenartikel benötigen mindestens zwei Positionen.');
-      return;
-    }
 
     setSaving(true);
     setError(null);
@@ -319,6 +373,9 @@ export function ArticleOverviewPage() {
         ? current.map((article) => article.id === saved.id ? saved : article)
         : [...current, saved]
       ).sort((a, b) => a.articleNumber.localeCompare(b.articleNumber, 'de')));
+      if (!editing && form.useAutomaticArticleNumber) {
+        void listArticleTypeSettings().then(setArticleTypeSettings).catch(() => undefined);
+      }
       setOpen(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Artikel konnte nicht gespeichert werden.');
@@ -438,11 +495,56 @@ export function ArticleOverviewPage() {
       return (
         <Stack spacing={2}>
           <Typography color="text.secondary">Historie der Einkaufspreise als Nettobeträge.</Typography>
-          {renderCollection('purchasePrices', [
-            { key: 'netPrice', label: 'EK netto', type: 'number', placeholder: '0,00' },
-            { key: 'validFrom', label: 'Gültig ab', type: 'date' },
-            { key: 'note', label: 'Bemerkung' },
-          ], { netPrice: '', validFrom: new Date().toISOString().slice(0, 10), note: '' }, 'EK-Preis')}
+          {(form.purchasePrices ?? []).map((row, index) => {
+            const selectedSupplier = suppliers.find((supplier) => supplier.id === row.supplierAddressId) ?? null;
+            return (
+              <Box key={index} sx={{ ...fieldGrid, pb: 1.5, borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
+                <Autocomplete
+                  options={suppliers}
+                  value={selectedSupplier}
+                  getOptionLabel={supplierLabel}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  filterOptions={(options, state) => {
+                    const term = state.inputValue.trim().toLocaleLowerCase('de');
+                    if (!term) return options;
+                    return options.filter((supplier) => [
+                      addressName(supplier),
+                      addressNumber(supplier.addressNumber),
+                      supplier.customerNumber,
+                      supplier.city,
+                      supplier.email,
+                    ].filter(Boolean).join(' ').toLocaleLowerCase('de').includes(term));
+                  }}
+                  noOptionsText="Keine passende Lieferantenadresse"
+                  onChange={(_event, supplier) => setPurchasePriceSupplier(index, supplier)}
+                  renderOption={(props, supplier) => (
+                    <li {...props} key={supplier.id}>
+                      <Box>
+                        <Typography>{addressName(supplier)}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {addressNumber(supplier.addressNumber)} · {[supplier.postalCode, supplier.city].filter(Boolean).join(' ')}
+                        </Typography>
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => <TextField {...params} label="Lieferant suchen" placeholder="Firma, Adressnummer oder Ort eingeben" />}
+                  sx={{ gridColumn: { sm: '1 / -1' } }}
+                />
+                <TextField label="EK netto" type="number" placeholder="0,00" value={row.netPrice ?? ''} onChange={(event) => setCollectionField('purchasePrices', index, 'netPrice', event.target.value)} slotProps={{ htmlInput: { step: '0.001', min: 0 } }} />
+                <TextField label="Gültig ab" type="date" value={row.validFrom ?? ''} onChange={(event) => setCollectionField('purchasePrices', index, 'validFrom', event.target.value)} />
+                <TextField label="Bemerkung" value={row.note ?? ''} onChange={(event) => setCollectionField('purchasePrices', index, 'note', event.target.value)} sx={{ gridColumn: { sm: '1 / -1' } }} />
+                <Tooltip title="EK-Preis entfernen">
+                  <IconButton aria-label="EK-Preis entfernen" color="error" size="small" onClick={() => removeCollectionRow('purchasePrices', index)} sx={{ position: 'absolute', right: -8, top: -14 }}>
+                    <DeleteOutline fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            );
+          })}
+          <Button variant="outlined" onClick={() => addCollectionRow('purchasePrices', { supplierAddressId: '', supplierName: '', supplierAddressNumber: '', netPrice: '', validFrom: new Date().toISOString().slice(0, 10), note: '' })} sx={{ alignSelf: 'flex-start' }}>
+            + EK-Preis
+          </Button>
+          {suppliers.length === 0 && <Alert severity="warning">Es sind noch keine Adressen vom Typ Lieferant oder Kunde/Lieferant angelegt.</Alert>}
         </Stack>
       );
     }
@@ -459,17 +561,113 @@ export function ArticleOverviewPage() {
       );
     }
     if (section === 'positions') {
+      const availablePositionArticles = articles.filter((article) => article.id !== editing?.id);
       return (
         <Stack spacing={2}>
-          {!requiresPositions(form.type) && <Alert severity="info">Positionen sind für diesen Artikeltyp optional.</Alert>}
-          {requiresPositions(form.type) && <Alert severity="warning">Für diesen Artikeltyp sind mindestens zwei Positionen erforderlich.</Alert>}
-          {renderCollection('positions', [
-            { key: 'articleNumber', label: 'Artikelnummer', placeholder: 'z. B. ART-000002' },
-            { key: 'description', label: 'Bezeichnung' },
-            { key: 'quantity', label: 'Menge', type: 'number' },
-            { key: 'unit', label: 'Einheit', placeholder: 'Stk.' },
-            { key: 'note', label: 'Hinweis' },
-          ], { articleNumber: '', description: '', quantity: '1', unit: 'Stk.', note: '' }, 'Position')}
+          <Alert severity="info">Positionen sind optional und können auch später ergänzt werden.</Alert>
+          {(form.positions ?? []).map((row, index) => {
+            const selectedArticle = availablePositionArticles.find((article) => article.articleNumber === row.articleNumber) ?? null;
+            return (
+              <Box key={index} sx={{ ...fieldGrid, pb: 1.5, borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
+                <Autocomplete
+                  options={availablePositionArticles}
+                  value={selectedArticle}
+                  inputValue={row.articleNumber ?? ''}
+                  getOptionLabel={(article) => article.articleNumber}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  filterOptions={(options, state) => {
+                    const term = state.inputValue.trim().toLocaleLowerCase('de');
+                    return term ? options.filter((article) => article.articleNumber.toLocaleLowerCase('de').includes(term)) : options;
+                  }}
+                  noOptionsText="Keine passende Artikelnummer"
+                  onInputChange={(_event, value, reason) => reason === 'input' && setPositionSearch(index, 'articleNumber', value)}
+                  onChange={(_event, article) => setPositionArticle(index, article)}
+                  renderOption={(props, article) => <li {...props} key={article.id}>{article.articleNumber} · {article.name}</li>}
+                  renderInput={(params) => <TextField {...params} label="Artikelnummer suchen" placeholder="Artikelnummer eingeben" />}
+                />
+                <Autocomplete
+                  options={availablePositionArticles}
+                  value={selectedArticle}
+                  inputValue={row.description ?? ''}
+                  getOptionLabel={(article) => article.name}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  filterOptions={(options, state) => {
+                    const term = state.inputValue.trim().toLocaleLowerCase('de');
+                    return term ? options.filter((article) => article.name.toLocaleLowerCase('de').includes(term)) : options;
+                  }}
+                  noOptionsText="Keine passende Bezeichnung"
+                  onInputChange={(_event, value, reason) => reason === 'input' && setPositionSearch(index, 'description', value)}
+                  onChange={(_event, article) => setPositionArticle(index, article)}
+                  renderOption={(props, article) => <li {...props} key={article.id}>{article.name} · {article.articleNumber}</li>}
+                  renderInput={(params) => <TextField {...params} label="Bezeichnung suchen" placeholder="Bezeichnung eingeben" />}
+                />
+                <TextField label="Menge" type="number" value={row.quantity ?? ''} onChange={(event) => setCollectionField('positions', index, 'quantity', event.target.value)} slotProps={{ htmlInput: { step: '0.001', min: 0 } }} />
+                <TextField label="Einheit" value={row.unit ?? ''} slotProps={{ input: { readOnly: true } }} helperText="Wird vom Quellartikel übernommen" />
+                <TextField label="Hinweis" value={row.note ?? ''} onChange={(event) => setCollectionField('positions', index, 'note', event.target.value)} />
+                <Tooltip title="Position entfernen">
+                  <IconButton aria-label="Position entfernen" color="error" size="small" onClick={() => removeCollectionRow('positions', index)} sx={{ position: 'absolute', right: -8, top: -14 }}>
+                    <DeleteOutline fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            );
+          })}
+          <Button variant="outlined" onClick={() => addCollectionRow('positions', { articleNumber: '', description: '', quantity: '1', unit: '', note: '' })} sx={{ alignSelf: 'flex-start' }}>
+            + Position
+          </Button>
+        </Stack>
+      );
+    }
+    if (section === 'production') {
+      if (!editing) {
+        return <Alert severity="info">Der Artikel muss zuerst gespeichert werden, bevor seine Verwendung ermittelt werden kann.</Alert>;
+      }
+
+      const articleNumber = editing.articleNumber.trim().toLocaleLowerCase('de');
+      const usages = productionInstructions.flatMap((instruction) => {
+        const productionArticle = articles.find((article) => article.id === instruction.articleId);
+        const positions = (productionArticle?.positions ?? []).filter((position) =>
+          position.articleNumber?.trim().toLocaleLowerCase('de') === articleNumber,
+        );
+        return positions.map((position) => ({ instruction, productionArticle, position }));
+      });
+
+      return (
+        <Stack spacing={2}>
+          <Typography color="text.secondary">
+            Zeigt alle Produktionsanweisungen, in denen dieser Artikel als Position verwendet wird.
+          </Typography>
+          <TableContainer sx={{ borderTop: 1, borderColor: 'divider' }}>
+            <Table size="small" aria-label="Verwendung in Produktionsanweisungen" sx={{ minWidth: 720 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>ANWEISUNG</TableCell>
+                  <TableCell>PRODUKTIONSARTIKEL</TableCell>
+                  <TableCell>BEZEICHNUNG</TableCell>
+                  <TableCell>MENGE</TableCell>
+                  <TableCell>ZEITRAUM</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {usages.map(({ instruction, productionArticle, position }, index) => (
+                  <TableRow key={`${instruction.id}-${index}`}>
+                    <TableCell sx={{ color: 'primary.main' }}>{productionInstructionNumber(instruction.instructionNumber)}</TableCell>
+                    <TableCell>{productionArticle?.articleNumber ?? instruction.article.articleNumber}</TableCell>
+                    <TableCell>{instruction.name}</TableCell>
+                    <TableCell>{position.quantity || '—'} {position.unit || ''}</TableCell>
+                    <TableCell>{instruction.startDate.slice(0, 10)} – {instruction.completionDate.slice(0, 10)}</TableCell>
+                  </TableRow>
+                ))}
+                {!usages.length && (
+                  <TableRow>
+                    <TableCell colSpan={5} sx={{ py: 4, color: 'text.secondary' }}>
+                      Dieser Artikel wird derzeit in keiner Produktionsanweisung verwendet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Stack>
       );
     }
@@ -601,12 +799,14 @@ export function ArticleOverviewPage() {
           placeholder="z. B. ART-000001"
           value={form.articleNumber}
           onChange={(event) => setField('articleNumber', event.target.value)}
+          helperText={!editing && form.useAutomaticArticleNumber ? 'Wird automatisch aus dem Nummernkreis vergeben' : undefined}
+          slotProps={!editing && form.useAutomaticArticleNumber ? { input: { readOnly: true } } : undefined}
         />
-        <TextField select required label="Artikeltyp" value={form.type} onChange={(event) => setField('type', event.target.value)}>
+        <TextField select required label="Artikeltyp" value={form.type} onChange={(event) => setArticleType(event.target.value as ArticleType)}>
           {Object.entries(typeLabels).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
         </TextField>
         <TextField required label="Bezeichnung" value={form.name} onChange={(event) => setField('name', event.target.value)} sx={{ gridColumn: { sm: '1 / -1' } }} />
-        <TextField select required label="Einheit" value={form.unitId} onChange={(event) => setField('unitId', event.target.value)}>
+        <TextField select label="Einheit" value={form.unitId} onChange={(event) => setField('unitId', event.target.value)}>
           {units.map((unit) => <MenuItem key={unit.id} value={unit.id}>{unit.name}</MenuItem>)}
         </TextField>
         <Box />
@@ -677,7 +877,7 @@ export function ArticleOverviewPage() {
                 <TableRow key={article.id} hover role="button" tabIndex={0} onClick={() => void startEdit(article)} onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && void startEdit(article)} sx={{ cursor: 'pointer' }}>
                   <TableCell sx={{ color: 'primary.main' }}>{article.articleNumber}</TableCell>
                   <TableCell>{article.name}</TableCell>
-                  <TableCell sx={{ color: 'warning.main' }}>{typeLabels[article.type]}</TableCell>
+                  <TableCell sx={{ color: typeTextColors[article.type] ?? 'warning.main' }}>{typeLabels[article.type]}</TableCell>
                   <TableCell align="right">{article.stock}</TableCell>
                   <TableCell>{article.vatRate} %</TableCell>
                   <TableCell align="right">{article.positions?.length ?? 0}</TableCell>

@@ -1,0 +1,2 @@
+FROM postgres:18.0-alpine
+COPY keycloak-schema.sql /docker-entrypoint-initdb.d/10-keycloak-schema.sql

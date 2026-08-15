@@ -17,6 +17,13 @@ export type ManagedUser = {
   createdAt: string | null;
 };
 
+export type BackupEntry = {
+  id: string;
+  filename: string;
+  createdAt: string;
+  sizeBytes: number;
+};
+
 export type CreateUserInput = {
   username: string;
   password: string;
@@ -87,10 +94,23 @@ export type PaymentMethod = {
 export type ArticleType =
   | 'VERKAUFSARTIKEL'
   | 'PRODUKTIONSARTIKEL'
+  | 'PRODUKTIONSMATERIAL'
   | 'STUECKLISTENARTIKEL'
   | 'DIGITAL_DOWNLOAD'
   | 'RABATT_GUTSCHEIN'
   | 'VERSANDGEBUEHREN';
+
+export type ArticleTypeSetting = {
+  type: ArticleType;
+  label: string;
+  prefix: string;
+  textColor: string;
+  nextNumber: number;
+  padding: number;
+  nextArticleNumber: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type ArticleUnit = {
   id: string;
@@ -188,8 +208,70 @@ export type Article = {
   updatedAt: string;
 };
 
-export type CreateArticleInput = Omit<Article, 'id' | 'unit' | 'variantLinks' | 'createdAt' | 'updatedAt'> & {
+export type CreateArticleInput = Omit<Article, 'id' | 'unit' | 'unitId' | 'variantLinks' | 'createdAt' | 'updatedAt'> & {
+  unitId?: string;
   variantIds: string[];
+  useAutomaticArticleNumber?: boolean;
+};
+
+export type ProductionInstructionStepInput = {
+  name: string;
+  workType: 'PHYSICAL_WORK' | 'PROCESS';
+  controlActive: boolean;
+  employeeInstruction?: string;
+  employeeInstructionActive: boolean;
+  confirmationRequired: boolean;
+  plannedHours: number;
+  plannedMinutes: number;
+  timeEstimateActive: boolean;
+  timerHours: number;
+  timerMinutes: number;
+  timerActive: boolean;
+  serialNumberMode: 'NONE' | 'GENERATOR' | 'INPUT';
+  serialNumberActive: boolean;
+};
+
+export type ProductionInstructionElementInput = {
+  name: string;
+  steps: ProductionInstructionStepInput[];
+};
+
+export type ProductionInstructionInput = {
+  articleId: string;
+  startDate: string;
+  completionDate: string;
+  partCount: number;
+  elements: ProductionInstructionElementInput[];
+};
+
+export type ProductionInstructionStep = ProductionInstructionStepInput & {
+  id: string;
+  position: number;
+};
+
+export type ProductionInstructionElement = Omit<ProductionInstructionElementInput, 'steps'> & {
+  id: string;
+  position: number;
+  steps: ProductionInstructionStep[];
+};
+
+export type ProductionInstruction = {
+  id: string;
+  instructionNumber: number;
+  articleId: string;
+  article: Pick<Article, 'id' | 'articleNumber' | 'name' | 'type'>;
+  name: string;
+  startDate: string;
+  completionDate: string;
+  partCount: number;
+  elements: ProductionInstructionElement[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProductionInstructionSummary = Omit<ProductionInstruction, 'elements'> & {
+  elementCount: number;
+  stepCount: number;
 };
 
 async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -224,6 +306,38 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export async function getCurrentUser(): Promise<UserProfile> {
   return apiRequest<UserProfile>('/api/users/me');
+}
+
+export const listBackups = () => apiRequest<BackupEntry[]>('/api/backups');
+
+export const createBackup = () =>
+  apiRequest<BackupEntry>('/api/backups', { method: 'POST' });
+
+export const restoreBackup = (id: string) =>
+  apiRequest<{ restored: boolean; restoredAt: string }>(`/api/backups/${encodeURIComponent(id)}/restore`, { method: 'POST' });
+
+export const deleteBackup = (id: string) =>
+  apiRequest<void>(`/api/backups/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
+export async function downloadBackup(backup: BackupEntry) {
+  await keycloak.updateToken(30);
+  if (!keycloak.token) throw new Error('Die Sitzung ist abgelaufen. Bitte melde dich erneut an.');
+  const response = await fetch(`/api/backups/${encodeURIComponent(backup.id)}/download`, {
+    credentials: 'same-origin',
+    headers: { Authorization: `Bearer ${keycloak.token}` },
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(error?.message || `Download fehlgeschlagen (${response.status})`);
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = backup.filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 export const listUsers = () => apiRequest<ManagedUser[]>('/api/users');
@@ -285,6 +399,24 @@ export const createArticle = (input: CreateArticleInput) =>
 export const updateArticle = (id: string, input: CreateArticleInput) =>
   apiRequest<Article>(`/api/articles/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) });
 
+export const listProductionInstructions = () =>
+  apiRequest<ProductionInstructionSummary[]>('/api/production-instructions');
+
+export const getProductionInstruction = (id: string) =>
+  apiRequest<ProductionInstruction>(`/api/production-instructions/${encodeURIComponent(id)}`);
+
+export const createProductionInstruction = (input: ProductionInstructionInput) =>
+  apiRequest<ProductionInstruction>('/api/production-instructions', { method: 'POST', body: JSON.stringify(input) });
+
+export const updateProductionInstruction = (id: string, input: ProductionInstructionInput) =>
+  apiRequest<ProductionInstruction>(`/api/production-instructions/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+
+export const deleteProductionInstruction = (id: string) =>
+  apiRequest<void>(`/api/production-instructions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
 export const uploadArticleImage = (name: string, dataUrl: string) =>
   apiRequest<{ reference: string; mimeType: string }>('/api/article-images', {
     method: 'POST',
@@ -292,6 +424,14 @@ export const uploadArticleImage = (name: string, dataUrl: string) =>
   });
 
 export const listArticleUnits = () => apiRequest<ArticleUnit[]>('/api/article-units');
+
+export const listArticleTypeSettings = () => apiRequest<ArticleTypeSetting[]>('/api/article-type-settings');
+
+export const updateArticleTypeSetting = (type: ArticleType, input: Pick<ArticleTypeSetting, 'label' | 'prefix' | 'textColor' | 'nextNumber'>) =>
+  apiRequest<ArticleTypeSetting>(`/api/article-type-settings/${encodeURIComponent(type)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
 
 export const createArticleUnit = (name: string) =>
   apiRequest<ArticleUnit>('/api/article-units', { method: 'POST', body: JSON.stringify({ name }) });

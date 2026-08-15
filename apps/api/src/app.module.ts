@@ -11,8 +11,11 @@ import { WarehouseLocationsModule } from './modules/warehouse-locations/warehous
 import { ExternalIntegrationsModule } from './modules/external-integrations/external-integrations.module';
 import { ArticleImagesModule } from './modules/article-images/article-images.module';
 import { PaymentMethodsModule } from './modules/payment-methods/payment-methods.module';
+import { ProductionInstructionsModule } from './modules/production-instructions/production-instructions.module';
+import { ArticleTypeSettingsModule } from './modules/article-type-settings/article-type-settings.module';
+import { BackupsModule } from './modules/backups/backups.module';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, HealthModule, UsersModule, AddressesModule, SpecificationsModule, ArticlesModule, ArticleUnitsModule, WarehouseLocationsModule, ExternalIntegrationsModule, ArticleImagesModule, PaymentMethodsModule],
+  imports: [DatabaseModule, AuthModule, HealthModule, UsersModule, AddressesModule, SpecificationsModule, ArticlesModule, ArticleUnitsModule, ArticleTypeSettingsModule, WarehouseLocationsModule, ExternalIntegrationsModule, ArticleImagesModule, PaymentMethodsModule, ProductionInstructionsModule, BackupsModule],
 })
 export class AppModule {}

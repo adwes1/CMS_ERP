@@ -1,0 +1,11 @@
+FROM quay.io/keycloak/keycloak:26.7.0
+
+USER root
+COPY cms-erp-realm.json /opt/keycloak/data/import/cms-erp-realm.json
+COPY themes /opt/keycloak/themes
+COPY configure.sh user-profile.json /opt/cms-erp/
+RUN chmod 0555 /opt/cms-erp/configure.sh \
+    && chown -R 1000:0 /opt/cms-erp /opt/keycloak/data/import /opt/keycloak/themes
+USER 1000
+
+ENV USER_PROFILE_FILE=/opt/cms-erp/user-profile.json

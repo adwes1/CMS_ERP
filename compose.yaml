@@ -45,9 +45,11 @@ services:
       KEYCLOAK_API_CLIENT_SECRET: ${KEYCLOAK_API_CLIENT_SECRET}
       INTEGRATION_ENCRYPTION_KEY: ${KEYCLOAK_API_CLIENT_SECRET}
       ARTICLE_IMAGE_DIR: /app/data/article-images
+      BACKUP_DIR: /app/data/backups
       PORT: 3000
     volumes:
       - article_images:/app/data/article-images
+      - backup_data:/app/data/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,6 +117,8 @@ services:
     restart: "no"
     entrypoint: ["/bin/sh", "/config/configure.sh"]
     environment:
+      APP_ORIGIN: https://cms-erp.localhost
+      USER_PROFILE_FILE: /config/user-profile.json
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KEYCLOAK_APP_ADMIN_PASSWORD: ${KEYCLOAK_APP_ADMIN_PASSWORD:?KEYCLOAK_APP_ADMIN_PASSWORD muss gesetzt sein}
@@ -129,5 +133,6 @@ services:
 volumes:
   postgres_data:
   article_images:
+  backup_data:
   caddy_data:
   caddy_config:

@@ -51,8 +51,6 @@ export class ArticlesService {
   }) {
     const articleNumber = input.articleNumber === undefined ? existing?.articleNumber : input.articleNumber;
     const name = input.name === undefined ? existing?.name : input.name;
-    const type = input.type === undefined ? existing?.type : input.type;
-    const positions = input.positions === undefined ? existing?.positions : input.positions;
     const purchasePrices = input.purchasePrices === undefined ? existing?.purchasePrices : input.purchasePrices;
     const salePrices = input.salePrices === undefined ? existing?.salePrices : input.salePrices;
     const stockEntries = input.stockEntries === undefined ? existing?.stockEntries : input.stockEntries;
@@ -80,10 +78,14 @@ export class ArticlesService {
       }).length;
     };
 
-    if (!articleNumber?.trim()) throw new BadRequestException('Artikelnummer muss angegeben werden');
+    if (!input.useAutomaticArticleNumber && !articleNumber?.trim()) throw new BadRequestException('Artikelnummer muss angegeben werden');
     if (!name?.trim()) throw new BadRequestException('Bezeichnung muss angegeben werden');
-    if (!validPriceCount(purchasePrices)) throw new BadRequestException('Mindestens ein EK-Nettopreis mit Datum ist erforderlich');
-    if (!validPriceCount(salePrices)) throw new BadRequestException('Mindestens ein VK-Nettopreis mit Datum ist erforderlich');
+    if (Array.isArray(purchasePrices) && validPriceCount(purchasePrices) !== purchasePrices.length) {
+      throw new BadRequestException('Angegebene EK-Nettopreise benötigen einen gültigen Betrag und ein Datum');
+    }
+    if (Array.isArray(salePrices) && validPriceCount(salePrices) !== salePrices.length) {
+      throw new BadRequestException('Angegebene VK-Nettopreise benötigen einen gültigen Betrag und ein Datum');
+    }
     if (files) {
       if (files.some((file) => Boolean(file.dataUrl))) {
         throw new BadRequestException('Bildinhalte dürfen nicht in den Artikeldaten gespeichert werden');
@@ -104,11 +106,9 @@ export class ArticlesService {
     if ([lengthCm, widthCm, heightCm].some((value) => value !== null && (!Number.isFinite(value) || value <= 0))) {
       throw new BadRequestException('Angegebene Abmessungen müssen größer als 0 sein');
     }
-    if (!Array.isArray(stockEntries) || stockEntries.length === 0) {
-      throw new BadRequestException('Mindestens ein Lagerplatz mit Bestand und Mindestbestand ist erforderlich');
-    }
+    if (stockEntries != null && !Array.isArray(stockEntries)) throw new BadRequestException('Ungültiger Lagerbestand');
     const warehouseLocationIds: string[] = [];
-    for (const entry of stockEntries) {
+    for (const entry of Array.isArray(stockEntries) ? stockEntries : []) {
       if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
         throw new BadRequestException('Ungültiger Lagerbestand');
       }
@@ -126,11 +126,13 @@ export class ArticlesService {
     if (new Set(warehouseLocationIds).size !== warehouseLocationIds.length) {
       throw new BadRequestException('Ein Lagerplatz darf je Artikel nur einmal verwendet werden');
     }
-    const existingWarehouseLocationCount = await this.prisma.warehouseLocation.count({
-      where: { id: { in: warehouseLocationIds } },
-    });
-    if (existingWarehouseLocationCount !== warehouseLocationIds.length) {
-      throw new BadRequestException('Mindestens ein gewählter Lagerplatz ist nicht vorhanden');
+    if (warehouseLocationIds.length) {
+      const existingWarehouseLocationCount = await this.prisma.warehouseLocation.count({
+        where: { id: { in: warehouseLocationIds } },
+      });
+      if (existingWarehouseLocationCount !== warehouseLocationIds.length) {
+        throw new BadRequestException('Mindestens ein gewählter Lagerplatz ist nicht vorhanden');
+      }
     }
     if (input.variantIds !== undefined) {
       if (existing && input.variantIds.includes(existing.id)) {
@@ -141,14 +143,10 @@ export class ArticlesService {
         throw new BadRequestException('Mindestens ein gewählter Variantenartikel ist nicht vorhanden');
       }
     }
-    if (['PRODUKTIONSARTIKEL', 'STUECKLISTENARTIKEL'].includes(type ?? '')
-      && (!Array.isArray(positions) || positions.length < 2)) {
-      throw new BadRequestException('Produktions- und Stücklistenartikel benötigen mindestens zwei Positionen');
-    }
   }
 
   private data(input: CreateArticleDto | UpdateArticleDto) {
-    const { variantIds: _variantIds, ...articleInput } = input;
+    const { variantIds: _variantIds, useAutomaticArticleNumber: _useAutomaticArticleNumber, ...articleInput } = input;
     const optionalDecimal = (value: string | undefined) =>
       value === undefined ? undefined : (value.trim() === '' ? null : new Prisma.Decimal(value));
     const calculatedStock = input.stockEntries === undefined
@@ -176,15 +174,34 @@ export class ArticlesService {
 
   async create(input: CreateArticleDto) {
     await this.validate(input);
+    const defaultUnit = input.unitId
+      ? null
+      : await this.prisma.articleUnit.findUnique({ where: { name: 'Stück' }, select: { id: true } })
+        ?? await this.prisma.articleUnit.findFirst({ orderBy: { name: 'asc' }, select: { id: true } });
+    const unitId = input.unitId ?? defaultUnit?.id;
+    if (!unitId) throw new BadRequestException('Es ist keine Standardeinheit angelegt');
     try {
       return await this.prisma.$transaction(async (transaction) => {
+        let articleNumber = input.articleNumber?.trim() ?? '';
+        if (input.useAutomaticArticleNumber) {
+          let available = false;
+          while (!available) {
+            const setting = await transaction.articleTypeSetting.update({
+              where: { type: input.type },
+              data: { nextNumber: { increment: 1 } },
+            });
+            const reservedNumber = setting.nextNumber - 1;
+            articleNumber = `${setting.prefix}${String(reservedNumber).padStart(setting.padding, '0')}`;
+            available = !(await transaction.article.findUnique({ where: { articleNumber }, select: { id: true } }));
+          }
+        }
         const article = await transaction.article.create({
           data: {
             ...this.data(input),
-            articleNumber: input.articleNumber.trim(),
+            articleNumber,
             name: input.name.trim(),
             type: input.type,
-            unitId: input.unitId,
+            unitId,
             stock: new Prisma.Decimal((input.stockEntries ?? []).reduce((total, entry) => total + Number(entry.stock || 0), 0).toString()),
             stockEntries: (input.stockEntries ?? []) as Prisma.InputJsonValue,
             vatRate: input.vatRate || '19',

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import {
   createArticleUnit,
   deleteArticleUnit,
+  listArticleTypeSettings,
   listArticleUnits,
+  updateArticleTypeSetting,
   updateArticleUnit,
+  type ArticleTypeSetting,
   type ArticleUnit,
 } from '../../api/client';
 
@@ -12,6 +15,7 @@ type Props = { canManage: boolean };
 
 export function ArticleSettingsPage({ canManage }: Props) {
   const [units, setUnits] = useState<ArticleUnit[]>([]);
+  const [articleTypes, setArticleTypes] = useState<ArticleTypeSetting[]>([]);
   const [name, setName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -19,7 +23,12 @@ export function ArticleSettingsPage({ canManage }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listArticleUnits().then(setUnits).catch((reason: Error) => setError(reason.message));
+    Promise.all([listArticleUnits(), listArticleTypeSettings()])
+      .then(([loadedUnits, loadedArticleTypes]) => {
+        setUnits(loadedUnits);
+        setArticleTypes(loadedArticleTypes);
+      })
+      .catch((reason: Error) => setError(reason.message));
   }, []);
 
   const sortUnits = (values: ArticleUnit[]) => values.sort((a, b) => a.name.localeCompare(b.name, 'de'));
@@ -74,6 +83,32 @@ export function ArticleSettingsPage({ canManage }: Props) {
     }
   };
 
+  const setArticleTypeField = (type: ArticleTypeSetting['type'], field: 'label' | 'prefix' | 'textColor' | 'nextNumber', value: string) => {
+    setArticleTypes((current) => current.map((entry) => entry.type === type ? {
+      ...entry,
+      [field]: field === 'nextNumber' ? Math.max(1, Number(value) || 1) : value,
+    } : entry));
+  };
+
+  const saveArticleType = async (setting: ArticleTypeSetting) => {
+    if (!setting.label.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateArticleTypeSetting(setting.type, {
+        label: setting.label,
+        prefix: setting.prefix,
+        textColor: setting.textColor,
+        nextNumber: setting.nextNumber,
+      });
+      setArticleTypes((current) => current.map((entry) => entry.type === updated.type ? updated : entry));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Artikeltyp konnte nicht gespeichert werden.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Stack spacing={3}>
       <Box>
@@ -86,6 +121,64 @@ export function ArticleSettingsPage({ canManage }: Props) {
 
       {error && <Alert severity="error">{error}</Alert>}
       {!canManage && <Alert severity="warning">Änderungen sind nur für Administratoren möglich.</Alert>}
+
+      <Box>
+        <Typography variant="h2" sx={{ mb: 1 }}>Artikeleigenschaften und Nummernkreise</Typography>
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Anzeigenamen und getrennte Nummernkreise der Artikeltypen verwalten. Die nächste Nummer wird bei jeder automatischen Artikelanlage erhöht.
+        </Typography>
+        <TableContainer sx={{ borderTop: 1, borderColor: 'divider' }}>
+          <Table size="small" aria-label="Artikeltypen und Nummernkreise" sx={{ minWidth: 940 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>ARTIKELTYP</TableCell>
+                <TableCell>ANZEIGENAME</TableCell>
+                <TableCell>PRÄFIX</TableCell>
+                <TableCell>TEXTFARBE</TableCell>
+                <TableCell>NÄCHSTE NUMMER</TableCell>
+                <TableCell>VORSCHAU</TableCell>
+                <TableCell align="right">AKTION</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {articleTypes.map((setting) => (
+                <TableRow key={setting.type}>
+                  <TableCell><Typography variant="caption" color="text.secondary">{setting.type}</Typography></TableCell>
+                  <TableCell>
+                    <TextField size="small" value={setting.label} disabled={!canManage || saving} onChange={(event) => setArticleTypeField(setting.type, 'label', event.target.value)} />
+                  </TableCell>
+                  <TableCell>
+                    <TextField size="small" value={setting.prefix} disabled={!canManage || saving} onChange={(event) => setArticleTypeField(setting.type, 'prefix', event.target.value)} sx={{ width: 110 }} />
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <TextField
+                        size="small"
+                        type="color"
+                        aria-label={`Textfarbe für ${setting.label}`}
+                        value={setting.textColor}
+                        disabled={!canManage || saving}
+                        onChange={(event) => setArticleTypeField(setting.type, 'textColor', event.target.value)}
+                        sx={{ width: 64 }}
+                      />
+                      <Typography variant="caption" sx={{ color: setting.textColor }}>{setting.textColor.toUpperCase()}</Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    <TextField size="small" type="number" value={setting.nextNumber} disabled={!canManage || saving} onChange={(event) => setArticleTypeField(setting.type, 'nextNumber', event.target.value)} slotProps={{ htmlInput: { min: 1, step: 1 } }} sx={{ width: 150 }} />
+                  </TableCell>
+                  <TableCell sx={{ color: 'primary.main', whiteSpace: 'nowrap' }}>
+                    {setting.prefix}{String(setting.nextNumber).padStart(setting.padding, '0')}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Button disabled={!canManage || saving || !setting.label.trim()} onClick={() => void saveArticleType(setting)}>Speichern</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
 
       <Box>
         <Typography variant="h2" sx={{ mb: 1 }}>Einheiten</Typography>

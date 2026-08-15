@@ -4,6 +4,7 @@ set -eu
 KCADM=/opt/keycloak/bin/kcadm.sh
 SERVER=http://keycloak:8080/auth
 REALM=cms-erp
+APP_ORIGIN=${APP_ORIGIN:-https://cms-erp.localhost}
 
 "$KCADM" config credentials \
   --server "$SERVER" \
@@ -11,8 +12,20 @@ REALM=cms-erp
   --user "$KEYCLOAK_ADMIN" \
   --password "$KEYCLOAK_ADMIN_PASSWORD" >/dev/null
 
-"$KCADM" update users/profile -r "$REALM" -f /config/user-profile.json
+USER_PROFILE_FILE=${USER_PROFILE_FILE:-/config/user-profile.json}
+
+"$KCADM" update users/profile -r "$REALM" -f "$USER_PROFILE_FILE"
 "$KCADM" update "realms/$REALM" -s loginTheme=cms-erp-terminal
+
+web_client_uuid=$("$KCADM" get clients -r "$REALM" -q clientId=cms-erp-web --fields id --format csv --noquotes)
+if [ -z "$web_client_uuid" ]; then
+  echo "Keycloak-Webclient cms-erp-web wurde nicht gefunden." >&2
+  exit 1
+fi
+"$KCADM" update "clients/$web_client_uuid" -r "$REALM" \
+  -s 'redirectUris=["'"$APP_ORIGIN"'/*"]' \
+  -s 'webOrigins=["'"$APP_ORIGIN"'"]' \
+  -s 'attributes."post.logout.redirect.uris"="'"$APP_ORIGIN"'/*"'
 
 api_client_uuid=$("$KCADM" get clients -r "$REALM" -q clientId=cms-erp-api --fields id --format csv --noquotes)
 if [ -z "$api_client_uuid" ]; then

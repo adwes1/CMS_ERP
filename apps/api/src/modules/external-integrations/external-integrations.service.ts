@@ -418,7 +418,7 @@ export class ExternalIntegrationsService implements OnModuleInit, OnModuleDestro
       redirect: 'error',
     });
     if (!response.ok) throw new BadGatewayException(`Shopware-Lagerbestände konnten nicht gelesen werden (HTTP ${response.status})`);
-    const body = await response.json() as { data?: unknown; total?: unknown };
+    const body = await this.readJson<{ data?: unknown; total?: unknown }>(response, 8 * 1024 * 1024);
     if (!Array.isArray(body.data)) throw new BadGatewayException('Shopware hat ein ungültiges Lagerbestandsformat zurückgegeben');
     return {
       data: body.data as Array<{ id: string; stock?: number | string | null }>,
@@ -1338,6 +1338,7 @@ export class ExternalIntegrationsService implements OnModuleInit, OnModuleDestro
         redirect: 'error',
       });
       success = response.ok;
+      await response.body?.cancel();
       message = success
         ? 'Verbindung zu Shopware wurde erfolgreich hergestellt.'
         : `Shopware hat die Anmeldung abgelehnt (HTTP ${response.status}).`;

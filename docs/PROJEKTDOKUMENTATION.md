@@ -1,6 +1,6 @@
 # CMS ERP – Projektdokumentation
 
-**Dokumentationsstand:** 12. August 2026  
+**Dokumentationsstand:** 15. August 2026
 **Projektversion:** 0.1.0  
 **Status:** lauffähige lokale Entwicklungsgrundlage mit ersten Kernfunktionen
 
@@ -14,20 +14,22 @@ erste fachliche Funktionen bereit. Der Schwerpunkt der bisherigen Arbeiten lag a
 - zentraler Anmeldung und rollenbasierter Autorisierung,
 - einer konsistenten Weboberfläche,
 - Benutzer- und Adressverwaltung,
-- Artikel- und Lagerverwaltung,
+- Artikel-, Lager- und Produktionsverwaltung,
 - Verwaltung externer Schnittstellen,
 - konfigurierbaren Spezifikationen für Adressen,
-- reproduzierbarem Betrieb über Docker Compose und lokalem HTTPS.
+- reproduzierbarem Betrieb über Docker Compose und lokalem HTTPS sowie
+  vorbereiteter Bereitstellung über GitHub Container Registry und Portainer.
 
-Die Bereiche Aufträge, Angebote, Buchhaltung und Produktion sowie einzelne
-Unterseiten der Adress- und Lagerverwaltung sind in der Navigation bereits
-vorgesehen, aber noch nicht fachlich implementiert.
+Die Bereiche Aufträge, Angebote und Buchhaltung sowie einzelne Übersichts- und
+Bewegungsseiten sind in der Navigation bereits vorgesehen, aber noch nicht
+fachlich implementiert. In der Produktion ist die Verwaltung von
+Produktionsanweisungen bereits umgesetzt.
 
 ## 2. Aktueller Funktionsumfang
 
 | Bereich | Stand | Umgesetzte Funktionen |
 | --- | --- | --- |
-| Infrastruktur | umgesetzt | Docker Compose, Dienstabhängigkeiten, Healthchecks, persistente Volumes |
+| Infrastruktur | umgesetzt | lokales Docker Compose, Portainer-Stack, Dienstabhängigkeiten, Healthchecks, persistente Volumes und Multi-Arch-Containerworkflow |
 | HTTPS und Routing | umgesetzt | zentraler Caddy-Gateway, lokale CA, Sicherheitsheader |
 | Authentifizierung | umgesetzt | Keycloak, OIDC Authorization Code Flow mit PKCE, Token-Aktualisierung |
 | Autorisierung | umgesetzt | zentrale API-Guards und Realm-Rollen `cms-erp-user`/`cms-erp-admin` |
@@ -36,18 +38,22 @@ vorgesehen, aber noch nicht fachlich implementiert.
 | Adressen | umgesetzt | Übersicht, Suche, Anlage und Bearbeitung mit automatisch vergebener Adressnummer |
 | Adressdetails | umgesetzt | Stammdaten, Lieferadressen, Bankdaten, Ansprechpartner, Dokumentverweise und gekaufte Artikel |
 | Spezifikationen | umgesetzt | auflisten sowie durch Administratoren anlegen und löschen |
-| Artikel | umgesetzt | Übersicht, Suche, Anlage und Bearbeitung einschließlich Preisen, Lagerbeständen, Varianten, Produktbild und Produktionspositionen |
+| Artikel | umgesetzt | Übersicht, Detailabruf, Suche, Anlage und Bearbeitung einschließlich automatischer Nummern, Preisen, Lagerbeständen, Varianten, ausgelagertem Produktbild und Produktionspositionen |
+| Artikelarten | umgesetzt | sieben konfigurierbare Arten mit Bezeichnung, Nummernpräfix, Textfarbe und nächster Nummer |
 | Artikeleinheiten | umgesetzt | auflisten; durch Administratoren anlegen, umbenennen und löschen |
 | Lagerplätze | umgesetzt | Übersicht, Suche sowie Anlage, Bearbeitung und geschützte Löschung |
+| Bestandsübersicht | umgesetzt | Kennzahlen, lagerplatzbezogene Bestände, Bewertung, kritische und unbewertete Positionen |
+| Produktionsanweisungen | umgesetzt | Übersicht und vollständige Pflege verschachtelter Elemente und Arbeitsschritte |
+| Zahlungsarten | umgesetzt | auflisten; durch Administratoren anlegen und löschen |
 | Externe Schnittstellen | umgesetzt | Shopware-6-Verbindungen verwalten, Zugangsdaten verschlüsseln und Verbindung testen |
-| Datenfreigaben | umgesetzt | Import, Export, Änderung und Löschung je Schnittstelle getrennt freigeben oder sperren |
+| Datenfreigaben | umgesetzt | Import, separaten Bestandsimport, Export, Änderung und Löschung je Schnittstelle freigeben oder sperren |
 | Shopware-Kundenimport | umgesetzt | schreibfreie Vorschau und bestätigter, paketweiser Import mit Dublettenprüfung |
 | Shopware-Artikelimport | umgesetzt | Vorschau und paketweiser Import einschließlich Bestand, Medien und Variantenbeziehungen |
-| Schnittstellen-Zeitpläne | konfigurierbar | Intervalle und Aktivstatus speicherbar; automatische serverseitige Ausführung noch offen |
+| Shopware-Bestandsabgleich | umgesetzt | konfigurierbarer Hintergrundabgleich, Status und letzte Laufmeldung; Fremdbestände bleiben erhalten |
 | Eigene API-Anbindung | umgesetzt | Basis-URL, Authentifizierungsart und verfügbare REST-Ressourcen anzeigen |
 | API-Dokumentation | umgesetzt | Swagger/OpenAPI unter `/api/docs` |
-| Tests | begonnen | Jest/Vitest konfiguriert; erster API-Sicherheitstest vorhanden, Frontend-Testfälle fehlen |
-| Weitere ERP-Module | geplant | Aufträge, Angebote, Buchhaltung und Produktion zeigen Platzhalterseiten |
+| Tests | begonnen | 16 bestandene API-Tests; Vitest ist konfiguriert, Frontend-Testfälle fehlen |
+| Weitere ERP-Module | geplant | Aufträge, Angebote, Buchhaltung, Produktionsübersicht, Lagerbewegungen, Rollen sowie Backup & Update zeigen Platzhalterseiten |
 
 ## 3. Bisher durchgeführte Arbeiten
 
@@ -60,8 +66,10 @@ vorgesehen, aber noch nicht fachlich implementiert.
 - Prisma als Datenzugriffsschicht mit versionierten Migrationen
 - Multi-Stage-Docker-Builds für API und Webanwendung
 - eigener API-Docker-Test-Stage und getrennte Produktionsabhängigkeiten
+- GitHub-Actions-Workflow für getestete Multi-Arch-Images (`amd64`/`arm64`) in GHCR
 - nginx zur Auslieferung der kompilierten SPA
 - Caddy als einziger veröffentlichter Einstiegspunkt auf Port 80/443
+- zusätzlicher Portainer-Stack für NAS-/Serverbetrieb mit vorkompilierten Images
 - Lazy Loading der größeren Fachseiten zur Aufteilung des Frontend-Bundles
 
 ### 3.2 Identität und Sicherheit
@@ -99,7 +107,10 @@ vorgesehen, aber noch nicht fachlich implementiert.
 - eigenes Keycloak-Login-Theme passend zur Anwendungsoberfläche
 - Informationsseite für die eigene REST-API mit kopierbarer Basis-URL
 - eigene Vorschau- und Fortschrittsseiten für Kunden- und Artikelimporte
-- Einstellungsseite für Schnittstellenintervalle und Zeitplanstatus
+- Einstellungsseite für Schnittstellenintervalle, Bestandsfreigabe und Laufstatus
+- Bestandsübersicht mit Kennzahlen, Bewertung und Suche
+- Produktionsanweisungen mit verschachteltem Editor für Elemente und Arbeitsschritte
+- Einstellungsseiten für Zahlungs- und Artikelarten
 
 ### 3.4 Fachmodule
 
@@ -143,24 +154,31 @@ vorgesehen, aber noch nicht fachlich implementiert.
 
 - Artikel werden nach Artikelnummer sortiert, tabellarisch dargestellt und
   clientseitig durchsucht.
-- Unterstützte Arten sind Verkaufsartikel, Produktionsartikel und
-  Stücklistenartikel.
-- Artikelnummer und Bezeichnung sind verpflichtend; die Artikelnummer ist
-  eindeutig.
+- Unterstützt werden Einkaufs-, Produktions-, Produktionsmaterial-,
+  Stücklisten-, Digital-Download-, Rabatt-/Gutschein- und Versandgebührenartikel.
+- Artikelnummern sind eindeutig und können aus dem je Artikelart konfigurierten
+  Präfix, einer laufenden Nummer und einer Auffülllänge automatisch vergeben
+  werden. Eine manuelle Artikelnummer bleibt möglich.
+- Bezeichnung, Präfix, nächste Nummer und Textfarbe der Artikelarten können durch
+  Administratoren gepflegt werden.
 - Jeder Artikel verweist auf eine zentral verwaltete Einheit und besitzt einen
-  Mehrwertsteuersatz.
+  Mehrwertsteuersatz. Fehlt die Einheit bei der Anlage, wird bevorzugt `Stück`
+  beziehungsweise die erste vorhandene Einheit verwendet.
 - Netto-/Bruttogewicht und Abmessungen können mit drei Nachkommastellen gepflegt
   werden. Negative Werte sowie ein Bruttogewicht unter dem Nettogewicht werden
   abgelehnt.
-- Mindestens je ein gültiger Einkaufs- und Verkaufsnettopreis mit Gültigkeitsdatum
-  ist erforderlich.
-- Mindestens ein Lagerplatz mit Bestand und Mindestbestand ist erforderlich. Der
-  Gesamtbestand wird serverseitig aus allen Lagerplatzbeständen berechnet.
+- Preis- und Lagerzeilen sind optional; vorhandene Zeilen müssen vollständig und
+  gültig sein. Der Gesamtbestand wird serverseitig aus allen Lagerplatzbeständen
+  berechnet.
 - Produktions- und Stücklistenartikel benötigen mindestens zwei Positionen.
 - Bestehende Artikel können als Varianten eines Elternartikels verknüpft werden;
   Selbstverknüpfungen und unbekannte Varianten-IDs werden abgelehnt.
-- Ein Produktbild kann direkt als Bilddatei hinterlegt werden. Zulässig ist genau
-  eine Produktabbildung bis 2 MB; weitere Dateien bleiben Metadaten/Verweise.
+- Ein Produktbild kann direkt hochgeladen werden. JPEG, PNG, WebP und GIF bis 2 MB
+  werden in einem persistenten Dateivolume gespeichert; der Artikel enthält nur
+  die öffentliche `/api/article-images/...`-Referenz. Beim API-Start werden ältere
+  eingebettete Produktbilder in diese Ablage migriert.
+- Die Artikelliste lässt große Dateidaten aus; der neue Detailendpunkt liefert den
+  vollständigen Datensatz zur Bearbeitung.
 - Zusätzlich stehen Fremdnummern, weitere Dateiverweise, Notizen und
   Einkaufsinformationen zur Verfügung.
 
@@ -178,6 +196,35 @@ vorgesehen, aber noch nicht fachlich implementiert.
 - Die Übersicht unterstützt Suche, Anlage, Bearbeitung und Löschung.
 - Ein in einem Artikelbestand verwendeter Lagerplatz kann nicht gelöscht werden.
 
+**Bestandsübersicht**
+
+- Die Seite unter `#/inventory/stock` verdichtet die artikelbezogenen Bestände je
+  Lagerplatz und unterstützt eine Volltextsuche.
+- Sie zeigt Gesamtmenge, Artikel mit Bestand, aktuellen Netto-Lagerwert, kritische
+  Bestände und Artikel ohne ermittelbaren Einkaufspreis.
+- Der Lagerwert wird aus Bestand und dem aktuell gültigen Einkaufspreis berechnet.
+  Eine eigene Bewegungs- oder Bewertungsentität existiert noch nicht.
+
+**Produktionsanweisungen**
+
+- Produktions- und Stücklistenartikeln können datierte Produktionsanweisungen mit
+  automatisch fortlaufender Anweisungsnummer zugeordnet werden.
+- Eine Anweisung besteht aus bis zu 100 benannten Elementen mit jeweils bis zu 200
+  geordneten Arbeitsschritten; insgesamt sind höchstens 1.000 Schritte zulässig.
+- Arbeitsschritte unterscheiden körperliche Arbeit und Prozess, unterstützen
+  Kontrollstatus, Mitarbeiterhinweis, Bestätigung, Planzeit, Timer und optionale
+  Seriennummern per Generator oder manueller Eingabe.
+- Anlage, Detailabruf, Bearbeitung und Löschung stehen allen angemeldeten Benutzern
+  zur Verfügung. Verschachtelte Elemente werden bei Änderungen transaktional
+  ersetzt; die Teileanzahl muss ihrer Anzahl entsprechen.
+
+**Zahlungsarten**
+
+- Angemeldete Benutzer können die zentrale Liste lesen; Administratoren können
+  Einträge anlegen und löschen.
+- Namen werden getrimmt und unabhängig von Groß-/Kleinschreibung auf Duplikate
+  geprüft. Eine Verknüpfung mit Aufträgen oder Rechnungen existiert noch nicht.
+
 **Externe Schnittstellen**
 
 - Administratoren können externe Anbieter anlegen, bearbeiten, aktivieren,
@@ -194,6 +241,8 @@ vorgesehen, aber noch nicht fachlich implementiert.
 - Testergebnis, Zeitpunkt und verständliche Statusmeldung werden persistiert.
 - Import, Export, Änderung und Löschung sind getrennte Freigaben. Der sichere
   Standard ist, dass alle vier Aktionen gesperrt sind.
+- Der Bestandsimport besitzt eine zusätzliche Freigabe, die nur zusammen mit der
+  allgemeinen Importfreigabe aktiv sein kann.
 
 **Shopware-Kundenimport**
 
@@ -215,7 +264,7 @@ vorgesehen, aber noch nicht fachlich implementiert.
   zehn Artikeln und erfordert eine Bestätigung.
 - Der eigentliche Import verarbeitet Pakete zu je 25 Produkten und protokolliert
   seinen Fortschritt wie der Kundenimport.
-- Übernommen werden Artikelnummer, Name, Bestand, Einheit, Mehrwertsteuer,
+- Übernommen werden Artikelnummer, Name, optionaler Bestand, Einheit, Mehrwertsteuer,
   Einkaufs-/Verkaufspreis, Gewicht, Abmessungen, Beschreibung, EAN und optional das
   Shopware-Titelbild.
 - Nicht vorhandene Einheiten sowie der Lagerplatz
@@ -232,12 +281,14 @@ vorgesehen, aber noch nicht fachlich implementiert.
 
 - Administratoren können je externer Verbindung ein Intervall von einer Minute bis
   10.080 Minuten und einen Aktivstatus speichern.
-- Ein Zeitplan lässt sich nur für eine aktive Schnittstelle mit mindestens einer
-  Datenfreigabe aktivieren. Beim Deaktivieren der Schnittstelle oder Sperren aller
-  Datenaktionen wird er automatisch deaktiviert.
-- Die aktuelle Implementierung speichert lediglich diese Einstellungen. Sie enthält
-  noch keinen Hintergrunddienst, der Importe oder andere Aktionen automatisch
-  ausführt.
+- Ein Zeitplan lässt sich nur für eine aktive, erfolgreich getestete Schnittstelle
+  mit allgemeiner Import- und Bestandsimportfreigabe aktivieren.
+- Die API prüft alle 30 Sekunden fällige Verbindungen und synchronisiert
+  Shopware-Bestände in Paketen zu je 25 Produkten. Aktualisiert werden nur zuvor
+  importierte Artikel mit externer Referenz.
+- Der Shopware-Lagerwert wird ersetzt, Bestände anderer Lagerplätze bleiben
+  erhalten; Gesamtbestände werden neu berechnet. Zeitpunkt, Status und Meldung des
+  letzten Laufs werden gespeichert.
 
 **API-Anbindung**
 
@@ -262,6 +313,7 @@ flowchart LR
     G -->|"/api/*"| A["NestJS API"]
     G -->|"/auth/*"| K["Keycloak"]
     A -->|"Prisma"| P[("PostgreSQL")]
+    A -->|"Produktbilder"| I[("persistentes Bild-Volume")]
     A -->|"OIDC / Admin API"| K
     A -->|"HTTPS / Client Credentials"| E["Externer Anbieter / Shopware 6"]
     K -->|"Realm-Daten"| P
@@ -293,8 +345,11 @@ CMS_ERP/
 │   ├── caddy/                  Gateway-Konfiguration
 │   ├── keycloak/               Realm-Import und Nachkonfiguration
 │   └── postgres/               Initiales Keycloak-Datenbankschema
+├── .github/workflows/          Test-, Build- und Container-Workflow
 ├── UI-Vorlage/                 gestalterische Ausgangsreferenz
 ├── compose.yaml                lokale Gesamtumgebung
+├── compose.portainer.yaml      Stack mit Images aus einer Container Registry
+├── .env.portainer.example      Konfigurationsvorlage für Portainer
 ├── ARCHITECTURE.md             verbindliche Architekturgrundsätze
 └── README.md                   Schnellstart
 ```
@@ -343,19 +398,20 @@ Beziehung zu `Address` ist optional; beim Löschen gilt `RESTRICT`.
 | Feldgruppe | Inhalt |
 | --- | --- |
 | Identität | UUID, eindeutige Artikelnummer und Bezeichnung |
-| Klassifikation | Verkaufs-, Produktions- oder Stücklistenartikel |
+| Klassifikation | eine von sieben konfigurierbaren Artikelarten |
 | Einheit und Steuer | Relation zu `ArticleUnit`, Mehrwertsteuersatz |
 | Bestand | berechneter Gesamtbestand und lagerplatzbezogene Bestände als JSON |
 | Maße | Netto-/Bruttogewicht in kg sowie Länge, Breite und Höhe in cm |
 | Preise | Einkaufs- und Verkaufspreisverläufe als JSON |
 | Fertigung | Positionen beziehungsweise Stücklistenbestandteile als JSON |
 | Varianten | relationale Selbstbeziehung über `ArticleVariantLink` einschließlich optionalem Variantentyp |
-| Weitere Daten | Fremdnummern, Produktbild/Dateiverweise, Einkaufskonfiguration und Notizen |
+| Weitere Daten | Fremdnummern, persistenter Produktbildverweis, weitere Dateiverweise, Einkaufskonfiguration und Notizen |
 | Technik | Erstellungs- und Änderungszeitpunkt |
 
 Indizes bestehen auf Bezeichnung, Artikelart und Einheit. Die Artikelnummer ist
 eindeutig. Der Gesamtbestand wird nicht unabhängig eingegeben, sondern beim
-Speichern aus `stockEntries` summiert.
+Speichern aus `stockEntries` summiert. Produktbilddateien liegen außerhalb der
+Datenbank; `files` enthält lediglich die Referenz und weitere Metadaten.
 
 ### 5.5 `ArticleVariantLink`
 
@@ -384,8 +440,8 @@ der JSON-Struktur `stockEntries` über deren UUID.
 | Identität | UUID und eindeutige Bezeichnung |
 | Anbieter | derzeit `SHOPWARE_6`, Basis-URL und Client-ID |
 | Zugang | mit AES-256-GCM verschlüsseltes Client-Secret |
-| Betrieb | Aktivstatus, Testergebnis sowie konfigurierter Zeitplan und Intervall |
-| Freigaben | Import, Export, Änderung und Löschung; jeweils standardmäßig `false` |
+| Betrieb | Aktivstatus, Testergebnis, Zeitplan und Intervall sowie letzter Bestandsabgleich mit Status und Meldung |
+| Freigaben | Import, Bestandsimport, Export, Änderung und Löschung; jeweils standardmäßig `false` |
 | Technik | Erstellungs- und Änderungszeitpunkt |
 
 Indizes bestehen auf Anbieter und Aktivstatus. Öffentliche API-Antworten schließen
@@ -407,10 +463,34 @@ aktuelle Seite, Paketgröße, Gesamtzahl, Zähler für verarbeitet/importiert/
 übersprungen/fehlgeschlagen, letzte Fehlermeldung und Abschlusszeitpunkt. Pro
 Integration wird ein Index auf Integration und Status verwendet.
 
+### 5.11 `ArticleTypeSetting`
+
+Konfiguriert jede Artikelart über technischen Typ, sichtbare Bezeichnung,
+Nummernpräfix, Textfarbe, nächste laufende Nummer und Auffülllänge. Die initialen
+Präfixe sind `EK-`, `PA-`, `PM-`, `SL-`, `DD-`, `RG-` und `VG-`; laufende Nummern
+starten bei 1 und werden standardmäßig auf sechs Stellen aufgefüllt. Die Reservierung
+einer automatischen Nummer erfolgt gemeinsam mit der Artikelanlage in einer
+Datenbanktransaktion.
+
+### 5.12 `PaymentMethod`
+
+Zentraler, eindeutig benannter Zahlungsartenstamm mit UUID und
+Erstellungszeitpunkt. Das Modell ist noch nicht mit einem Belegmodell verbunden.
+
+### 5.13 Produktionsanweisungen
+
+`ProductionInstruction` enthält UUID, automatisch fortlaufende Nummer,
+Artikelrelation, beim Anlegen kopierten Artikelnamen, Start- und Fertigstellungsdatum
+sowie Teileanzahl. `ProductionInstructionElement` ordnet benannte Elemente über ihre
+Position; `ProductionInstructionStep` speichert die geordneten Arbeitsschritte samt
+Arbeitsart, Steuerungsoptionen, Zeiten und Seriennummernmodus. Elemente und Schritte
+werden beim Löschen ihrer Eltern kaskadierend entfernt; das Löschen eines verwendeten
+Artikels bleibt durch `RESTRICT` gesperrt.
+
 ## 6. API-Übersicht
 
-Alle Endpunkte liegen unter `/api`. Bis auf den Healthcheck wird ein gültiges
-Keycloak-Bearer-Token benötigt.
+Alle 52 Endpunkte liegen unter `/api`. Bis auf den Healthcheck und die Auslieferung
+bereits gespeicherter Produktbilder wird ein gültiges Keycloak-Bearer-Token benötigt.
 
 | Methode | Pfad | Berechtigung | Zweck |
 | --- | --- | --- | --- |
@@ -427,8 +507,13 @@ Keycloak-Bearer-Token benötigt.
 | `POST` | `/specifications` | `cms-erp-admin` | Spezifikation anlegen |
 | `DELETE` | `/specifications/:id` | `cms-erp-admin` | unbenutzte Spezifikation löschen |
 | `GET` | `/articles` | angemeldet | Artikel mit Einheit auflisten |
+| `GET` | `/articles/:id` | angemeldet | vollständigen Artikel einschließlich Dateiverweisen laden |
 | `POST` | `/articles` | angemeldet | Artikel anlegen und Bestand berechnen |
 | `PATCH` | `/articles/:id` | angemeldet | Artikel bearbeiten und Bestand neu berechnen |
+| `POST` | `/article-images` | angemeldet | Produktbild bis 2 MB speichern |
+| `GET` | `/article-images/:filename` | öffentlich | gespeichertes Produktbild mit langfristigem Cache ausliefern |
+| `GET` | `/article-type-settings` | angemeldet | Konfigurationen aller Artikelarten auflisten |
+| `PATCH` | `/article-type-settings/:type` | `cms-erp-admin` | Bezeichnung, Präfix, Farbe oder nächste Nummer ändern |
 | `GET` | `/article-units` | angemeldet | Artikeleinheiten auflisten |
 | `POST` | `/article-units` | `cms-erp-admin` | Artikeleinheit anlegen |
 | `PATCH` | `/article-units/:id` | `cms-erp-admin` | Artikeleinheit umbenennen |
@@ -437,6 +522,14 @@ Keycloak-Bearer-Token benötigt.
 | `POST` | `/warehouse-locations` | `cms-erp-admin` | Lagerplatz anlegen |
 | `PATCH` | `/warehouse-locations/:id` | `cms-erp-admin` | Lagerplatz bearbeiten |
 | `DELETE` | `/warehouse-locations/:id` | `cms-erp-admin` | unbenutzten Lagerplatz löschen |
+| `GET` | `/payment-methods` | angemeldet | Zahlungsarten auflisten |
+| `POST` | `/payment-methods` | `cms-erp-admin` | Zahlungsart anlegen |
+| `DELETE` | `/payment-methods/:id` | `cms-erp-admin` | Zahlungsart löschen |
+| `GET` | `/production-instructions` | angemeldet | Produktionsanweisungen auflisten |
+| `GET` | `/production-instructions/:id` | angemeldet | verschachtelte Produktionsanweisung laden |
+| `POST` | `/production-instructions` | angemeldet | Produktionsanweisung anlegen |
+| `PATCH` | `/production-instructions/:id` | angemeldet | Produktionsanweisung vollständig bearbeiten |
+| `DELETE` | `/production-instructions/:id` | angemeldet | Produktionsanweisung löschen |
 | `GET` | `/external-integrations` | `cms-erp-admin` | externe Verbindungen auflisten |
 | `GET` | `/external-integrations/:id` | `cms-erp-admin` | Verbindung ohne Secret laden |
 | `POST` | `/external-integrations` | `cms-erp-admin` | Shopware-Verbindung anlegen |
@@ -457,15 +550,15 @@ Keycloak-Bearer-Token benötigt.
 Die interaktive Swagger-Dokumentation ist unter
 `https://cms-erp.localhost/api/docs` erreichbar. Eingaben werden global durch
 `class-validator` geprüft; unbekannte Felder weist die API zurück. Ressourcen-IDs
-werden an den Benutzer-, Spezifikations-, Artikel-, Einheiten-, Lagerplatz- und
-Schnittstellen-Endpunkten als UUID validiert.
+werden an den Benutzer-, Spezifikations-, Artikel-, Einheiten-, Lagerplatz-,
+Zahlungsarten-, Produktions- und Schnittstellen-Endpunkten als UUID validiert.
 
 ## 7. Rollen- und Berechtigungskonzept
 
 | Rolle | Zugriff |
 | --- | --- |
-| `cms-erp-user` | Anmeldung und reguläre geschützte Funktionen, einschließlich Adress- und Artikelpflege sowie lesendem Lagerplatzzugriff |
-| `cms-erp-admin` | zusätzlich Benutzerverwaltung, Pflege von Spezifikationen und Artikeleinheiten, schreibender Lagerplatzzugriff sowie vollständige Schnittstellenverwaltung |
+| `cms-erp-user` | Anmeldung und reguläre geschützte Funktionen, einschließlich Adress-, Artikel- und Produktionsanweisungspflege sowie lesendem Zugriff auf Lagerplätze, Zahlungs- und Artikelarten |
+| `cms-erp-admin` | zusätzlich Benutzerverwaltung, Pflege von Spezifikationen, Artikelarten, Artikeleinheiten und Zahlungsarten, schreibender Lagerplatzzugriff sowie vollständige Schnittstellenverwaltung |
 
 Die Oberfläche blendet beziehungsweise sperrt administrative Funktionen. Die
 maßgebliche Durchsetzung erfolgt jedoch serverseitig durch den Rollen-Guard.
@@ -524,6 +617,10 @@ Servicekonto-Rechte und das lokale Administratorkonto ab. Das Kennwort des
 Anwendungskontos stammt aus `KEYCLOAK_APP_ADMIN_PASSWORD`; die Compose-Konfiguration
 bricht ab, wenn diese Variable fehlt.
 
+Das benannte Volume `article_images` erhält die hochgeladenen Produktbilder über
+Neustarts und Container-Neuerstellungen hinweg. Die API verwendet darin
+`/app/data/article-images` als `ARTICLE_IMAGE_DIR`.
+
 ### 8.4 Lokales Zertifikat unter macOS
 
 ```bash
@@ -545,8 +642,28 @@ docker compose down
 ```
 
 `docker compose down` erhält die Daten in den benannten Volumes. Der Zusatz `-v`
-löscht Datenbank, Keycloak- und Caddy-Daten dauerhaft und darf nur bewusst verwendet
-werden.
+löscht Datenbank, Produktbilder, Keycloak- und Caddy-Daten dauerhaft und darf nur
+bewusst verwendet werden.
+
+### 8.6 Portainer- und Synology-Bereitstellung
+
+`compose.portainer.yaml` ist für einen Portainer-Stack mit bereits gebauten Images
+aus GHCR vorgesehen. Die Werte aus `.env.portainer.example` werden als
+Stack-Umgebungsvariablen übernommen. Wesentlich sind die von Browsern erreichbare
+`APP_ORIGIN`, der veröffentlichte `APP_PORT`, Registry-Namespace und Image-Tag sowie
+starke, getrennte Werte für Datenbank, Keycloak-Administration, Anwendungskonto,
+API-Client und `INTEGRATION_ENCRYPTION_KEY`.
+
+Der Stack persistiert PostgreSQL-Daten und Produktbilder in eigenen Volumes. Seine
+Caddy-Konfiguration veröffentlicht bewusst nur HTTP auf `${APP_PORT:-8080}`. Für
+einen Zugriff aus dem Internet muss davor ein vertrauenswürdiger TLS-Reverse-Proxy,
+beispielsweise der Synology Reverse Proxy, betrieben und `APP_ORIGIN` auf dessen
+öffentliche HTTPS-Adresse gesetzt werden.
+
+Der Workflow `.github/workflows/container-images.yml` führt zuerst den API-Teststage
+aus und baut anschließend API, Web, Gateway, Keycloak und PostgreSQL für
+`linux/amd64` und `linux/arm64`. Bei Änderungen auf `main` sowie bei manueller
+Ausführung werden `latest`- und Commit-SHA-Tags in GHCR veröffentlicht.
 
 ## 9. Entwicklung und Qualitätssicherung
 
@@ -565,33 +682,34 @@ Das API-Dockerfile besitzt außerdem einen separaten `test`-Stage. Der Runtime-S
 enthält nur Produktionsabhängigkeiten; Prisma ist deshalb als Laufzeitabhängigkeit
 eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 
-### Verifizierter Stand am 12. August 2026
+### Verifizierter Stand am 15. August 2026
 
+- Der Prisma-Client wurde aus dem aktuellen Schema generiert; anschließend liefen
+  der NestJS-Build und alle drei API-Testsuiten erfolgreich durch: 16 von 16 Tests
+  bestanden.
+- Abgedeckt sind insbesondere Schutzmaßnahmen externer Verbindungen,
+  Produktionsanweisungs-Validierung und das Weglassen großer Dateidaten in der
+  Artikelliste.
 - Der Web-TypeScript-Build und der Vite-Produktionsbuild laufen erfolgreich durch.
 - Vitest läuft erfolgreich, meldet aber ausdrücklich, dass keine Testdateien
   vorhanden sind.
 - Die Fachseiten werden per Lazy Loading in eigene JavaScript-Chunks aufgeteilt.
   Der größte initiale Chunk liegt nach dem aktuellen Produktionsbuild bei rund
-  376 kB; Vites Warnschwelle von 500 kB wird nicht überschritten.
-- Für den API-Schnittstellenservice existiert ein erster Jest-Test, der unsichere
-  URLs wie HTTP, URL-Zugangsdaten, zusätzliche Pfade, Loopback- und
-  Cloud-Metadatenadressen ablehnt.
-- Der API-Build wurde in der Dokumentationsumgebung nicht erneut ausgeführt, weil
-  dort keine API-Abhängigkeiten installiert waren. Entsprechend wurde der neue
-  Jest-Test in diesem Dokumentationsschritt nicht lokal ausgeführt.
-- `docker compose config --quiet` bestätigt eine syntaktisch gültige und vollständig
-  auflösbare Compose-Konfiguration.
+  378 kB; Vites Warnschwelle von 500 kB wird nicht überschritten.
+- `docker compose config --quiet` bestätigt die lokale Konfiguration. Auch
+  `docker compose -f compose.portainer.yaml --env-file .env.portainer.example
+  config --quiet` bestätigt den Portainer-Stack.
 - Ein vollständiger Docker-Integrationstest wurde in diesem Arbeitsschritt nicht
   durchgeführt.
 
 ## 10. Bekannte Grenzen und offene Punkte
 
-- Die automatisierte Testabdeckung ist weiterhin sehr gering: Es existiert ein
-  erster API-Unit-Test, aber noch keine Fachmodul-, Integrations- oder Browsertests
-  und keine Frontend-Testfälle.
-- Die Navigationspunkte für Aufträge, Angebote, Buchhaltung und Produktion sind
-  reine Platzhalter. Im Lager sind Artikel und Lagerplätze umgesetzt; Bestände und
-  Bewegungen besitzen noch eigene Platzhalterseiten.
+- Die automatisierte Testabdeckung ist weiterhin gering: 16 API-Unit-Tests decken
+  ausgewählte Sicherheits- und Fachregeln ab; Integrations-, Browser- und
+  Frontend-Testfälle fehlen.
+- Aufträge, Angebote, Buchhaltung, Produktionsübersicht, Lagerbewegungen, Rollen
+  sowie Backup & Update sind noch Platzhalter. Produktionsanweisungen und die
+  Bestandsübersicht sind dagegen umgesetzt.
 - Kunden-, Lieferanten- und Ansprechpartner-Unterseiten sind vorbereitet, besitzen
   aber noch keine eigene gefilterte Fachansicht.
 - Adressen können derzeit nicht gelöscht werden; die API bietet Auflisten, Anlegen
@@ -606,9 +724,8 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
   sind flexible JSON-Felder. Eigene Tabellen werden erforderlich, sobald diese
   Daten separat gesucht, validiert, versioniert oder referenziert werden sollen.
 - Adressdokumente und zusätzliche Artikeldateien sind aktuell nur Verweise oder
-  Metadaten. Lediglich eine Produktabbildung je Artikel kann als eingebettete
-  Data-URL gespeichert beziehungsweise aus Shopware übernommen werden; eine
-  allgemeine Datei- und Medienablage fehlt.
+  Metadaten. Produktbilder besitzen eine persistente Dateiablage, aber noch keine
+  allgemeine Medienverwaltung, Bereinigung verwaister Dateien oder Referenzzählung.
 - Lagerplatzreferenzen eines Artikels werden in JSON gespeichert und nicht durch
   Datenbank-Fremdschlüssel abgesichert. Vor dem Speichern prüft die API zwar die
   Existenz; referenzielle Integrität und Abfragen bleiben jedoch aufwendiger als bei
@@ -618,18 +735,17 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
   ein Update-/Merge-Verfahren für spätere Shopware-Änderungen fehlt.
 - Export, Aktualisierung und Löschung über Shopware sind noch nicht implementiert.
   Die entsprechenden Freigaben werden bislang nur gespeichert.
-- Zeitplan und Intervall können konfiguriert werden, es existiert aber noch kein
-  serverseitiger Scheduler. Importe laufen nur, solange die Verwaltungsseite die
-  einzelnen Pakete aktiv anfordert. Ein Lauf im Status `RUNNING` wird beim erneuten
-  Start fortgesetzt; für dauerhaft im Status `PROCESSING` verbliebene Läufe fehlt
-  derzeit eine automatische Wiederherstellung.
+- Nur der Shopware-Bestandsabgleich läuft automatisch. Kunden- und Artikelimporte
+  verarbeiten ihre Pakete weiterhin durch aktive Anforderungen der
+  Verwaltungsseite. Für dauerhaft im Status `PROCESSING` verbliebene Importläufe
+  fehlt eine automatische Wiederherstellung.
+- Der Bestandszeitplan läuft als Timer im API-Prozess und ist keine verteilte
+  Jobwarteschlange. Für mehrere API-Replikate fehlen robuste verteilte Sperren,
+  vollständige Laufhistorie, Wiederholungsstrategie und Monitoring.
 - Die Datenfreigaben sind grob nach Aktion getrennt, aber noch nicht nach
   Ressourcen, Feldern oder Datenrichtung je Entität differenziert.
 - Importfehler werden nur als Summenzähler und letzte Laufmeldung gespeichert; eine
   revisionsfähige Fehlerliste je Datensatz fehlt.
-- Produktbilder werden als Data-URL im JSON-Feld des Artikels gespeichert. Das ist
-  für kleine lokale Datenmengen praktikabel, ersetzt aber keine skalierbare
-  Medienablage.
 - Der Verschlüsselungsschlüssel für externe Secrets ist in der lokalen
   Compose-Konfiguration an das Keycloak-API-Client-Secret gekoppelt. Es gibt noch
   keinen Rotations- oder Wiederherstellungsprozess.
@@ -637,8 +753,9 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
   produktionsgerechte Keycloak-Passwortrichtlinie ist noch festzulegen.
 - Konfiguration und mitgelieferte Konten sind ausdrücklich nicht für den
   Produktivbetrieb gehärtet.
-- Observability, Backups, Wiederherstellung, CI/CD und ein Produktions-Deployment
-  sind noch nicht umgesetzt.
+- Eine Container-CI und ein Portainer-Stack sind vorhanden; automatische
+  Deployment-Freigaben, Migrationstests, Observability, Backups und dokumentierte
+  Wiederherstellung fehlen weiterhin.
 
 ## 11. Empfohlene nächste Schritte
 
@@ -647,7 +764,7 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 2. Rollen für lesenden und schreibenden Adress-, Artikel- und Lagerzugriff fachlich
    festlegen.
 3. Artikelmodul um serverseitige Suche, Paginierung und Filter sowie Adress- und
-   Artikelmodule um Detailabruf und Löschung/Archivierung erweitern.
+   Artikelmodule um Löschung beziehungsweise Archivierung erweitern.
 4. Lagerbestände, Preisverläufe, Stücklisten und weitere fachlich relevante
    JSON-Strukturen nach Klärung in eigenständige Entitäten überführen.
 5. Shopware-Import um Aktualisierungs-/Merge-Strategie, detaillierte
@@ -655,12 +772,13 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
    erweitern; anschließend Export und Löschung fachlich konzipieren.
 6. Bestandsbewegungen als revisionsfähige Buchungen umsetzen, statt Bestände nur
    als aktuellen Zahlenwert zu speichern.
-7. Einen echten Hintergrund-Worker für aktivierte Zeitpläne implementieren und mit
-   Sperren gegen parallele Läufe, Laufhistorie und Monitoring absichern.
+7. Den Bestandszeitplan in einen robusten Hintergrund-Worker überführen und mit
+   verteilter Sperre, Wiederholungen, Laufhistorie und Monitoring absichern.
 8. Vor einem produktiven Einsatz eigenständige Schlüsselverwaltung und Rotation,
    Secrets, Passwortregeln, Backups, Monitoring und extern vertrauenswürdiges TLS
    konzipieren.
-9. CI-Pipeline mit Build, Tests, Migrationstest und Containerprüfung einrichten.
+9. Die vorhandene Container-CI um Webtests, Migrationstest, Sicherheitsprüfung und
+   kontrollierte Deployment-Freigaben erweitern.
 
 ## 12. Wichtige Projektdateien
 
@@ -669,7 +787,10 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 | `README.md` | kompakter Schnellstart |
 | `ARCHITECTURE.md` | Architekturentscheidung und Modulvertrag |
 | `compose.yaml` | Orchestrierung der lokalen Dienste |
+| `compose.portainer.yaml` | Portainer-Stack mit Registry-Images |
 | `.env.example` | Vorlage der lokalen Konfiguration |
+| `.env.portainer.example` | Vorlage für Portainer und öffentliche Herkunft |
+| `.github/workflows/container-images.yml` | API-Test sowie Multi-Arch-Build und Veröffentlichung in GHCR |
 | `apps/api/prisma/schema.prisma` | aktuelles relationales Datenmodell |
 | `apps/api/prisma/migrations/` | versionierte Datenbankänderungen |
 | `apps/api/src/core/auth/` | Authentifizierungs- und Rollenprüfung |

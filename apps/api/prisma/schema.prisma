@@ -99,6 +99,7 @@ model Article {
   files           Json?
   purchasing      Json?
   externalReferences ExternalEntityReference[]
+  productionInstructions ProductionInstruction[]
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -106,6 +107,64 @@ model Article {
   @@index([type])
   @@index([unitId])
   @@map("articles")
+}
+
+model ProductionInstruction {
+  id                String                         @id @default(uuid()) @db.Uuid
+  instructionNumber Int                            @unique @default(autoincrement()) @map("instruction_number")
+  articleId         String                         @db.Uuid @map("article_id")
+  article           Article                        @relation(fields: [articleId], references: [id], onDelete: Restrict)
+  name              String
+  startDate         DateTime                       @db.Date @map("start_date")
+  completionDate    DateTime                       @db.Date @map("completion_date")
+  partCount         Int                            @map("part_count")
+  elements          ProductionInstructionElement[]
+  createdAt         DateTime                       @default(now()) @map("created_at")
+  updatedAt         DateTime                       @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@index([startDate])
+  @@map("production_instructions")
+}
+
+model ProductionInstructionElement {
+  id                      String                      @id @default(uuid()) @db.Uuid
+  productionInstructionId String                      @db.Uuid @map("production_instruction_id")
+  productionInstruction   ProductionInstruction       @relation(fields: [productionInstructionId], references: [id], onDelete: Cascade)
+  position                Int
+  name                    String
+  steps                   ProductionInstructionStep[]
+  createdAt               DateTime                    @default(now()) @map("created_at")
+  updatedAt               DateTime                    @updatedAt @map("updated_at")
+
+  @@unique([productionInstructionId, position])
+  @@map("production_instruction_elements")
+}
+
+model ProductionInstructionStep {
+  id                          String                       @id @default(uuid()) @db.Uuid
+  elementId                   String                       @db.Uuid @map("element_id")
+  element                     ProductionInstructionElement @relation(fields: [elementId], references: [id], onDelete: Cascade)
+  position                    Int
+  name                        String
+  workType                    String                       @map("work_type")
+  controlActive               Boolean                      @default(true) @map("control_active")
+  employeeInstruction         String?                      @map("employee_instruction")
+  employeeInstructionActive   Boolean                      @default(false) @map("employee_instruction_active")
+  confirmationRequired        Boolean                      @default(false) @map("confirmation_required")
+  plannedHours                Int                          @default(0) @map("planned_hours")
+  plannedMinutes              Int                          @default(0) @map("planned_minutes")
+  timeEstimateActive          Boolean                      @default(false) @map("time_estimate_active")
+  timerHours                  Int                          @default(0) @map("timer_hours")
+  timerMinutes                Int                          @default(0) @map("timer_minutes")
+  timerActive                 Boolean                      @default(false) @map("timer_active")
+  serialNumberMode            String                       @default("NONE") @map("serial_number_mode")
+  serialNumberActive          Boolean                      @default(false) @map("serial_number_active")
+  createdAt                   DateTime                     @default(now()) @map("created_at")
+  updatedAt                   DateTime                     @updatedAt @map("updated_at")
+
+  @@unique([elementId, position])
+  @@map("production_instruction_steps")
 }
 
 model ArticleVariantLink {
@@ -129,6 +188,19 @@ model ArticleUnit {
   articles  Article[]
 
   @@map("article_units")
+}
+
+model ArticleTypeSetting {
+  type       String   @id
+  label      String
+  prefix     String
+  textColor  String   @default("#F5E642") @map("text_color")
+  nextNumber Int      @default(1) @map("next_number")
+  padding    Int      @default(6)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("article_type_settings")
 }
 
 model WarehouseLocation {

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   ArrayUnique,
+  IsBoolean,
   IsArray,
   IsIn,
   IsNumberString,
@@ -14,28 +15,35 @@ import {
 } from 'class-validator';
 
 export class CreateArticleDto {
-  @ApiProperty({ example: 'ART-000001' })
+  @ApiPropertyOptional({ example: 'ART-000001' })
+  @IsOptional()
   @IsString()
   @MaxLength(64)
-  articleNumber!: string;
+  articleNumber?: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  useAutomaticArticleNumber?: boolean;
 
   @ApiProperty()
   @IsString()
   @MaxLength(200)
   name!: string;
 
-  @ApiProperty({ enum: ['VERKAUFSARTIKEL', 'PRODUKTIONSARTIKEL', 'STUECKLISTENARTIKEL', 'DIGITAL_DOWNLOAD', 'RABATT_GUTSCHEIN', 'VERSANDGEBUEHREN'] })
-  @IsIn(['VERKAUFSARTIKEL', 'PRODUKTIONSARTIKEL', 'STUECKLISTENARTIKEL', 'DIGITAL_DOWNLOAD', 'RABATT_GUTSCHEIN', 'VERSANDGEBUEHREN'])
-  type!: 'VERKAUFSARTIKEL' | 'PRODUKTIONSARTIKEL' | 'STUECKLISTENARTIKEL' | 'DIGITAL_DOWNLOAD' | 'RABATT_GUTSCHEIN' | 'VERSANDGEBUEHREN';
+  @ApiProperty({ enum: ['VERKAUFSARTIKEL', 'PRODUKTIONSARTIKEL', 'PRODUKTIONSMATERIAL', 'STUECKLISTENARTIKEL', 'DIGITAL_DOWNLOAD', 'RABATT_GUTSCHEIN', 'VERSANDGEBUEHREN'] })
+  @IsIn(['VERKAUFSARTIKEL', 'PRODUKTIONSARTIKEL', 'PRODUKTIONSMATERIAL', 'STUECKLISTENARTIKEL', 'DIGITAL_DOWNLOAD', 'RABATT_GUTSCHEIN', 'VERSANDGEBUEHREN'])
+  type!: 'VERKAUFSARTIKEL' | 'PRODUKTIONSARTIKEL' | 'PRODUKTIONSMATERIAL' | 'STUECKLISTENARTIKEL' | 'DIGITAL_DOWNLOAD' | 'RABATT_GUTSCHEIN' | 'VERSANDGEBUEHREN';
 
   @ApiPropertyOptional({ example: '12.500' })
   @IsOptional()
   @IsNumberString()
   stock?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Optional; ohne Angabe wird die Standardeinheit Stück verwendet' })
+  @IsOptional()
   @IsUUID()
-  unitId!: string;
+  unitId?: string;
   @ApiPropertyOptional({ example: '19' }) @IsOptional() @IsString() @MaxLength(30) vatRate?: string;
 
   @ApiPropertyOptional({ example: '1.250', description: 'Nettogewicht ohne Verpackung in kg' })
