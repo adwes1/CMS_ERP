@@ -1,5 +1,10 @@
 FROM quay.io/keycloak/keycloak:26.7.0
 
+ARG APP_VERSION=development
+ARG APP_COMMIT_SHA=development
+LABEL org.opencontainers.image.version=${APP_VERSION}
+LABEL org.opencontainers.image.revision=${APP_COMMIT_SHA}
+
 USER root
 COPY cms-erp-realm.json /opt/keycloak/data/import/cms-erp-realm.json
 COPY themes /opt/keycloak/themes

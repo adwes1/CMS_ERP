@@ -1,2 +1,7 @@
 FROM caddy:2.10.0-alpine
-COPY Caddyfile.portainer /etc/caddy/Caddyfile
+ARG CADDYFILE=Caddyfile.portainer
+ARG APP_VERSION=development
+ARG APP_COMMIT_SHA=development
+LABEL org.opencontainers.image.version=${APP_VERSION}
+LABEL org.opencontainers.image.revision=${APP_COMMIT_SHA}
+COPY ${CADDYFILE} /etc/caddy/Caddyfile

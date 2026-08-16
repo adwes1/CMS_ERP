@@ -1,2 +1,6 @@
 FROM postgres:18.0-alpine
+ARG APP_VERSION=development
+ARG APP_COMMIT_SHA=development
+LABEL org.opencontainers.image.version=${APP_VERSION}
+LABEL org.opencontainers.image.revision=${APP_COMMIT_SHA}
 COPY keycloak-schema.sql /docker-entrypoint-initdb.d/10-keycloak-schema.sql

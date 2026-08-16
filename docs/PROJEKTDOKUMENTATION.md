@@ -690,7 +690,7 @@ mit geregelter Rotation und Sicherung verwendet werden.
 ### 8.3 Start und Erreichbarkeit
 
 ```bash
-docker compose up --build -d
+./scripts/docker-git-sync.sh
 docker compose ps
 ```
 
@@ -701,8 +701,14 @@ docker compose ps
 | Healthcheck | `https://cms-erp.localhost/api/health` |
 | Keycloak-Administration | `https://cms-erp.localhost/auth/admin/` |
 
+Das Synchronisationsskript verweigert den Start außerhalb von `main`, bei nicht
+eingecheckten Dateien oder wenn der lokale Commit von `origin/main` abweicht. Es
+übergibt den geprüften Commit-SHA an Compose und baut daraus commitbezogene Images.
+Dadurch kann die lokale Docker-Umgebung keine Änderungen anzeigen, die noch nicht
+in GitHub vorhanden sind.
+
 Beim Start führt die API ausstehende Prisma-Migrationen automatisch aus. Keycloak
-importiert den Realm und bindet das projektspezifische Login-Theme ein.
+importiert den Realm und enthält das projektspezifische Login-Theme direkt im Image.
 `keycloak-config` gleicht Benutzerprofil, Login-Theme, Service-Client,
 Servicekonto-Rechte und das lokale Administratorkonto ab. Das Kennwort des
 Anwendungskontos stammt aus `KEYCLOAK_APP_ADMIN_PASSWORD`; die Compose-Konfiguration
@@ -712,7 +718,10 @@ Die benannten Volumes `article_images` und `backup_data` erhalten Produktbilder 
 ZIP-Sicherungen über Neustarts und Container-Neuerstellungen hinweg. Die API
 verwendet `/app/data/article-images` als `ARTICLE_IMAGE_DIR` und
 `/app/data/backups` als `BACKUP_DIR`. Buildargumente übergeben außerdem
-Anwendungsversion und Commit-SHA für den Updatevergleich.
+Anwendungsversion und Commit-SHA für den Updatevergleich. Auch Gateway,
+Weboberfläche, Keycloak und PostgreSQL tragen den Commit-SHA als OCI-Image-Label;
+Konfigurations-, Theme- und Initialisierungsdateien werden nicht live aus dem
+Arbeitsordner eingebunden.
 
 ### 8.4 Lokales Zertifikat unter macOS
 

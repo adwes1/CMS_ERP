@@ -2,13 +2,19 @@ name: cms-erp
 
 services:
   gateway:
-    image: caddy:2.10.0-alpine
+    image: cms-erp-gateway:${APP_COMMIT_SHA:-development}
+    build:
+      context: ./infrastructure/caddy
+      dockerfile: Dockerfile.portainer
+      args:
+        CADDYFILE: Caddyfile
+        APP_VERSION: ${APP_VERSION:-0.3.3a}
+        APP_COMMIT_SHA: ${APP_COMMIT_SHA:-development}
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -20,8 +26,12 @@ services:
         condition: service_healthy
 
   web:
+    image: cms-erp-web:${APP_COMMIT_SHA:-development}
     build:
       context: ./apps/web
+      args:
+        APP_VERSION: ${APP_VERSION:-0.3.3a}
+        APP_COMMIT_SHA: ${APP_COMMIT_SHA:-development}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
@@ -30,6 +40,7 @@ services:
       retries: 10
 
   api:
+    image: cms-erp-api:${APP_COMMIT_SHA:-development}
     build:
       context: ./apps/api
       args:
@@ -70,7 +81,13 @@ services:
       retries: 15
 
   postgres:
-    image: postgres:18.0-alpine
+    image: cms-erp-postgres:${APP_COMMIT_SHA:-development}
+    build:
+      context: ./infrastructure/postgres
+      dockerfile: Dockerfile.portainer
+      args:
+        APP_VERSION: ${APP_VERSION:-0.3.3a}
+        APP_COMMIT_SHA: ${APP_COMMIT_SHA:-development}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -78,7 +95,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./infrastructure/postgres/keycloak-schema.sql:/docker-entrypoint-initdb.d/10-keycloak-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -86,7 +102,13 @@ services:
       retries: 20
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.0
+    image: cms-erp-keycloak:${APP_COMMIT_SHA:-development}
+    build:
+      context: ./infrastructure/keycloak
+      dockerfile: Dockerfile.portainer
+      args:
+        APP_VERSION: ${APP_VERSION:-0.3.3a}
+        APP_COMMIT_SHA: ${APP_COMMIT_SHA:-development}
     restart: unless-stopped
     command: start-dev --import-realm
     environment:
@@ -101,9 +123,6 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    volumes:
-      - ./infrastructure/keycloak/cms-erp-realm.json:/opt/keycloak/data/import/cms-erp-realm.json:ro
-      - ./infrastructure/keycloak/themes:/opt/keycloak/themes:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,19 +138,15 @@ services:
       start_period: 30s
 
   keycloak-config:
-    image: quay.io/keycloak/keycloak:26.7.0
+    image: cms-erp-keycloak:${APP_COMMIT_SHA:-development}
     restart: "no"
-    entrypoint: ["/bin/sh", "/config/configure.sh"]
+    entrypoint: ["/bin/sh", "/opt/cms-erp/configure.sh"]
     environment:
       APP_ORIGIN: https://cms-erp.localhost
-      USER_PROFILE_FILE: /config/user-profile.json
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KEYCLOAK_APP_ADMIN_PASSWORD: ${KEYCLOAK_APP_ADMIN_PASSWORD:?KEYCLOAK_APP_ADMIN_PASSWORD muss gesetzt sein}
       KEYCLOAK_API_CLIENT_SECRET: ${KEYCLOAK_API_CLIENT_SECRET}
-    volumes:
-      - ./infrastructure/keycloak/configure.sh:/config/configure.sh:ro
-      - ./infrastructure/keycloak/user-profile.json:/config/user-profile.json:ro
     depends_on:
       keycloak:
         condition: service_healthy

@@ -8,8 +8,14 @@ NestJS, PostgreSQL, Keycloak und HTTPS über Caddy.
 Voraussetzung ist ein laufender Docker-Dienst.
 
 ```bash
-docker compose up --build -d
+./scripts/docker-git-sync.sh
 ```
+
+Das Skript startet nur vom Branch `main`, verlangt einen sauberen Arbeitsbaum und
+prüft vor dem Build, dass der lokale Commit exakt `origin/main` entspricht. Alle
+Anwendungsdateien einschließlich des Keycloak-Login-Themes werden anschließend in
+commitbezogene Images eingebaut; lokale Live-Mounts für Quell- und Theme-Dateien
+werden nicht verwendet.
 
 Danach:
 
@@ -51,6 +57,10 @@ docker compose ps
 docker compose logs -f
 docker compose down
 ```
+
+Nach Codeänderungen zuerst committen und nach GitHub pushen, danach erneut
+`./scripts/docker-git-sync.sh` ausführen. So bleiben Test-Docker und GitHub auf
+demselben Stand.
 
 Daten liegen in Docker-Volumes. `docker compose down` behält sie; der Zusatz `-v`
 würde sie unwiderruflich entfernen und sollte nur bewusst verwendet werden.
