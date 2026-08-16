@@ -1,17 +1,16 @@
 :root {
-  --terminal-bg: #050706;
-  --terminal-cyan: #5fd7ff;
-  --terminal-accent: #00ffd7;
-  --terminal-yellow: #ffff00;
-  --terminal-red: #ff3b3b;
-  --terminal-border: #365466;
-  --terminal-dim: #6d92a0;
+  --terminal-bg: #000000;
+  --terminal-cyan: #00ffd7;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   border-radius: 0 !important;
   box-shadow: none !important;
+  transition: none !important;
+  animation: none !important;
 }
 
 html,
@@ -54,7 +53,7 @@ body,
   width: min(100%, 420px) !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: 1px solid var(--terminal-border) !important;
+  border: 1px solid var(--terminal-cyan) !important;
   background: transparent !important;
 }
 
@@ -89,8 +88,15 @@ body,
   margin: 0 !important;
 }
 
+#kc-form-login {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
 .pf-v5-c-form__group {
-  margin: 0 0 14px !important;
+  width: 100% !important;
+  margin: 0 !important;
 }
 
 .pf-v5-c-form__group-label {
@@ -99,7 +105,7 @@ body,
 
 label,
 .pf-v5-c-form__label-text {
-  color: var(--terminal-dim) !important;
+  color: var(--terminal-cyan) !important;
   font-family: inherit !important;
   font-size: 12px !important;
   font-weight: 400 !important;
@@ -114,13 +120,34 @@ label,
   color: var(--terminal-cyan) !important;
 }
 
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after,
+.pf-v5-c-input-group::before,
+.pf-v5-c-input-group::after {
+  display: none !important;
+  content: none !important;
+}
+
+.pf-v5-c-input-group {
+  display: block !important;
+}
+
+.pf-v5-c-input-group__item,
+.pf-v5-c-input-group__item.pf-m-fill,
+.pf-v5-c-input-group__item > span {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  flex: 1 1 100% !important;
+}
+
 input[type="text"],
 input[type="email"],
 input[type="password"] {
   width: 100% !important;
   min-height: 38px !important;
   padding: 7px 10px !important;
-  border: 1px solid var(--terminal-border) !important;
+  border: 1px solid var(--terminal-cyan) !important;
   background: var(--terminal-bg) !important;
   color: var(--terminal-cyan) !important;
   font-family: inherit !important;
@@ -128,8 +155,20 @@ input[type="password"] {
   outline: none !important;
 }
 
-input:focus {
-  border-color: var(--terminal-accent) !important;
+input:hover,
+input:focus,
+input:focus-visible,
+input:active,
+.pf-v5-c-form-control:hover,
+.pf-v5-c-form-control:focus-within,
+.pf-v5-c-input-group:hover,
+.pf-v5-c-input-group:focus-within {
+  border-color: var(--terminal-cyan) !important;
+  background: var(--terminal-bg) !important;
+  color: var(--terminal-cyan) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  filter: none !important;
 }
 
 input:-webkit-autofill,
@@ -148,15 +187,15 @@ button[data-password-toggle],
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 #kc-login {
   flex: 0 0 132px;
   min-height: 38px !important;
   padding: 7px 16px !important;
-  border: 1px solid var(--terminal-accent) !important;
-  background: var(--terminal-accent) !important;
+  border: 1px solid var(--terminal-cyan) !important;
+  background: var(--terminal-cyan) !important;
   color: var(--terminal-bg) !important;
   font-family: inherit !important;
   font-size: 13px !important;
@@ -167,12 +206,13 @@ button[data-password-toggle],
 
 #kc-login:hover,
 #kc-login:focus {
-  border-color: var(--terminal-yellow) !important;
-  background: var(--terminal-yellow) !important;
+  border-color: var(--terminal-cyan) !important;
+  background: var(--terminal-bg) !important;
+  color: var(--terminal-cyan) !important;
 }
 
 .cms-forgot-password {
-  color: var(--terminal-accent) !important;
+  color: var(--terminal-cyan) !important;
   font-family: inherit !important;
   font-size: 12px !important;
   text-decoration: none !important;
@@ -181,14 +221,15 @@ button[data-password-toggle],
 
 .cms-forgot-password:hover,
 .cms-forgot-password:focus {
-  color: var(--terminal-yellow) !important;
+  color: var(--terminal-cyan) !important;
+  text-decoration: underline !important;
 }
 
 .pf-v5-c-alert {
   margin: 0 0 16px !important;
-  border: 1px solid var(--terminal-red) !important;
+  border: 1px solid var(--terminal-cyan) !important;
   background: transparent !important;
-  color: var(--terminal-red) !important;
+  color: var(--terminal-cyan) !important;
 }
 
 @media (max-width: 460px) {

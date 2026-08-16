@@ -70,15 +70,8 @@ const emptyElement = (position: number): ProductionInstructionElementInput => ({
   steps: [emptyStep()],
 });
 
-const localDate = (date = new Date()) => {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-};
-
 const emptyForm = (): ProductionInstructionInput => ({
   articleId: '',
-  startDate: localDate(),
-  completionDate: localDate(),
   partCount: 1,
   elements: [emptyElement(1)],
 });
@@ -139,8 +132,6 @@ export function ProductionInstructionsPage() {
       setEditing(detail);
       setForm({
         articleId: detail.articleId,
-        startDate: detail.startDate.slice(0, 10),
-        completionDate: detail.completionDate.slice(0, 10),
         partCount: detail.partCount,
         elements: detail.elements.map((element) => ({
           name: element.name,
@@ -222,12 +213,8 @@ export function ProductionInstructionsPage() {
   };
 
   const save = async () => {
-    if (!form.articleId || !form.startDate || !form.completionDate) {
-      setError('Bitte Artikel, Startdatum und Abschlussdatum vollständig angeben.');
-      return;
-    }
-    if (form.completionDate < form.startDate) {
-      setError('Das Abschlussdatum darf nicht vor dem Startdatum liegen.');
+    if (!form.articleId) {
+      setError('Bitte einen Artikel auswählen.');
       return;
     }
     if (form.elements.some((element) => !element.name.trim() || !element.steps.length || element.steps.some((step) => !step.name.trim()))) {
@@ -314,7 +301,6 @@ export function ProductionInstructionsPage() {
                 <TableCell>NUMMER</TableCell>
                 <TableCell>ARTIKELNUMMER</TableCell>
                 <TableCell>PRODUKTIONSNAME</TableCell>
-                <TableCell>ZEITRAUM</TableCell>
                 <TableCell align="right">TEILE / SCHRITTE</TableCell>
                 <TableCell align="right">AKTIONEN</TableCell>
               </TableRow>
@@ -325,7 +311,6 @@ export function ProductionInstructionsPage() {
                   <TableCell sx={{ color: 'primary.main' }}>{instructionNumber(entry.instructionNumber)}</TableCell>
                   <TableCell>{entry.article.articleNumber}</TableCell>
                   <TableCell>{entry.name}</TableCell>
-                  <TableCell>{entry.startDate.slice(0, 10)} – {entry.completionDate.slice(0, 10)}</TableCell>
                   <TableCell align="right">{entry.elementCount} / {entry.stepCount}</TableCell>
                   <TableCell align="right">
                     <Tooltip title="Löschen">
@@ -338,7 +323,7 @@ export function ProductionInstructionsPage() {
               ))}
               {!loading && !filteredInstructions.length && (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={5} sx={{ py: 4, color: 'text.secondary' }}>
                     {search.trim() ? 'Keine passenden Vorlagen gefunden.' : 'Noch keine Produktionsanweisungen vorhanden.'}
                   </TableCell>
                 </TableRow>
@@ -362,13 +347,11 @@ export function ProductionInstructionsPage() {
             {error && <Alert severity="error">{error}</Alert>}
             {!articles.length && <Alert severity="warning">Es sind noch keine Produktions- oder Stücklistenartikel vorhanden.</Alert>}
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 2fr 1fr 1fr 1fr' }, gap: 2 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 2fr 1fr' }, gap: 2 }}>
               <TextField select required label="Artikelnummer" value={form.articleId} disabled={saving} onChange={(event) => setForm((current) => ({ ...current, articleId: event.target.value }))}>
                 {articles.map((article) => <MenuItem key={article.id} value={article.id}>{article.articleNumber}</MenuItem>)}
               </TextField>
               <TextField label="Produktionsname" value={selectedArticle?.name ?? editing?.name ?? ''} slotProps={{ input: { readOnly: true } }} helperText="Wird aus dem Artikel übernommen" />
-              <TextField required type="date" label="Produktionsstart" value={form.startDate} disabled={saving} onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))} slotProps={{ inputLabel: { shrink: true } }} />
-              <TextField required type="date" label="Abschluss bis" value={form.completionDate} disabled={saving} onChange={(event) => setForm((current) => ({ ...current, completionDate: event.target.value }))} slotProps={{ inputLabel: { shrink: true } }} />
               <TextField required type="number" label="Anzahl Teile" value={form.partCount} disabled={saving} onChange={(event) => setPartCount(Number(event.target.value))} slotProps={{ htmlInput: { min: 1, max: 100 } }} />
             </Box>
 

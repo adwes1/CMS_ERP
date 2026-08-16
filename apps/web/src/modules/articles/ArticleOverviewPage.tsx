@@ -645,7 +645,7 @@ export function ArticleOverviewPage() {
                   <TableCell>PRODUKTIONSARTIKEL</TableCell>
                   <TableCell>BEZEICHNUNG</TableCell>
                   <TableCell>MENGE</TableCell>
-                  <TableCell>ZEITRAUM</TableCell>
+                  <TableCell>TEILE / SCHRITTE</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -655,7 +655,7 @@ export function ArticleOverviewPage() {
                     <TableCell>{productionArticle?.articleNumber ?? instruction.article.articleNumber}</TableCell>
                     <TableCell>{instruction.name}</TableCell>
                     <TableCell>{position.quantity || '—'} {position.unit || ''}</TableCell>
-                    <TableCell>{instruction.startDate.slice(0, 10)} – {instruction.completionDate.slice(0, 10)}</TableCell>
+                    <TableCell>{instruction.elementCount} / {instruction.stepCount}</TableCell>
                   </TableRow>
                 ))}
                 {!usages.length && (

@@ -18,6 +18,6 @@ export class ProductionsController {
   @Post()
   @ApiCreatedResponse()
   create(@Body() input: CreateProductionDto) {
-    return this.productions.create(input.productionInstructionId);
+    return this.productions.create(input);
   }
 }

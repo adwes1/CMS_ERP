@@ -27,7 +27,7 @@ export class SystemUpdateService {
   private readonly repository = process.env.UPDATE_REPOSITORY || 'adwes1/CMS_ERP';
   private readonly branch = process.env.UPDATE_BRANCH || 'main';
   private readonly workflow = process.env.UPDATE_WORKFLOW || 'container-images.yml';
-  private readonly currentVersion = process.env.APP_VERSION || '0.3.1a';
+  private readonly currentVersion = process.env.APP_VERSION || '0.3.2a';
   private readonly currentCommit = process.env.APP_COMMIT_SHA || 'development';
   private readonly migrationDirectory = join(process.cwd(), 'prisma', 'migrations');
   private readonly filesDirectory = process.env.ARTICLE_IMAGE_DIR || join(process.cwd(), 'data', 'article-images');
@@ -61,9 +61,10 @@ export class SystemUpdateService {
           'X-GitHub-Api-Version': '2022-11-28',
         },
         signal: AbortSignal.timeout(5000),
+        redirect: 'error',
       });
       if (!response.ok) throw new Error(`GitHub antwortet mit ${response.status}`);
-      const workflowRuns = await response.json() as GithubWorkflowRuns;
+      const workflowRuns = await this.readJson<GithubWorkflowRuns>(response, 1024 * 1024);
       const latest = workflowRuns.workflow_runs?.[0];
       if (!latest) throw new Error('Kein erfolgreicher Container-Build gefunden');
       const comparable = /^[0-9a-f]{40}$/i.test(this.currentCommit);
@@ -199,6 +200,7 @@ export class SystemUpdateService {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await response.body?.cancel();
       return { id, label, status: 'ok', message: `${label} ist erreichbar.` };
     } catch (error) {
       return {
@@ -207,6 +209,33 @@ export class SystemUpdateService {
         status: 'error',
         message: `${label} ist nicht erreichbar${error instanceof Error ? `: ${error.message}` : '.'}`,
       };
+    }
+  }
+
+  private async readJson<T>(response: Response, maxBytes: number): Promise<T> {
+    const declaredLength = Number(response.headers.get('content-length'));
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+      throw new Error('GitHub-Antwort überschreitet das erlaubte Größenlimit');
+    }
+    if (!response.body) throw new Error('GitHub hat keine Antwortdaten geliefert');
+
+    const reader = response.body.getReader();
+    const chunks: Buffer[] = [];
+    let received = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += value.byteLength;
+        if (received > maxBytes) {
+          await reader.cancel();
+          throw new Error('GitHub-Antwort überschreitet das erlaubte Größenlimit');
+        }
+        chunks.push(Buffer.from(value));
+      }
+      return JSON.parse(Buffer.concat(chunks).toString('utf8')) as T;
+    } finally {
+      reader.releaseLock();
     }
   }
 

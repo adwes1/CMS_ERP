@@ -42,16 +42,9 @@ export class ProductionInstructionsService {
     return instruction;
   }
 
-  private date(value: string) {
-    return new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
-  }
-
   private async validate(input: SaveProductionInstructionDto) {
     if (input.elements.length !== input.partCount) {
       throw new BadRequestException('Die Anzahl der Produktelemente stimmt nicht mit der Teileanzahl überein');
-    }
-    if (this.date(input.completionDate) < this.date(input.startDate)) {
-      throw new BadRequestException('Das Abschlussdatum darf nicht vor dem Startdatum liegen');
     }
     if (input.elements.some((element) => !element.name.trim())) {
       throw new BadRequestException('Jedes Produktelement benötigt einen Namen');
@@ -107,8 +100,6 @@ export class ProductionInstructionsService {
       data: {
         articleId: article.id,
         name: article.name,
-        startDate: this.date(input.startDate),
-        completionDate: this.date(input.completionDate),
         partCount: input.partCount,
         elements: { create: this.elementsData(input) },
       },
@@ -128,8 +119,6 @@ export class ProductionInstructionsService {
         data: {
           articleId: article.id,
           name: article.name,
-          startDate: this.date(input.startDate),
-          completionDate: this.date(input.completionDate),
           partCount: input.partCount,
           elements: { create: this.elementsData(input) },
         },

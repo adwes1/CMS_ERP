@@ -102,6 +102,7 @@ export class BackupsService implements OnModuleInit {
       const workspace = await mkdtemp(join(tmpdir(), 'cms-erp-restore-'));
       const stagedFiles = join(this.filesDirectory, `.restore-${randomUUID()}`);
       try {
+        await this.validateArchiveEntries(archivePath);
         await run('unzip', ['-q', archivePath, '-d', workspace], { maxBuffer: 5 * 1024 * 1024 });
         await this.validateManifest(workspace);
         await mkdir(stagedFiles);
@@ -130,9 +131,30 @@ export class BackupsService implements OnModuleInit {
   }
 
   async remove(id: string) {
-    if (this.operationRunning) throw new ConflictException('Es läuft bereits ein Backup-Vorgang');
-    const path = await this.resolveExisting(id);
-    await rm(path);
+    return this.exclusive(async () => {
+      const path = await this.resolveExisting(id);
+      await rm(path);
+    });
+  }
+
+  private async validateArchiveEntries(archivePath: string) {
+    const { stdout } = await run('unzip', ['-Z1', archivePath], { maxBuffer: 5 * 1024 * 1024 });
+    const entries = stdout.split(/\r?\n/).filter(Boolean);
+    if (
+      !entries.includes('manifest.json')
+      || !entries.includes('database.dump')
+      || !entries.some((entry) => entry === 'files/' || entry.startsWith('files/'))
+      || entries.some((entry) => !this.archiveEntryIsSafe(entry))
+    ) {
+      throw new InternalServerErrorException('Backup-Datei enthält unzulässige Archivpfade');
+    }
+  }
+
+  private archiveEntryIsSafe(entry: string) {
+    if (entry.includes('\\') || entry.startsWith('/')) return false;
+    const segments = entry.split('/').filter(Boolean);
+    if (segments.some((segment) => segment === '.' || segment === '..')) return false;
+    return entry === 'manifest.json' || entry === 'database.dump' || entry === 'files/' || entry.startsWith('files/');
   }
 
   private async validateManifest(workspace: string) {

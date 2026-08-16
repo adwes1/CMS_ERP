@@ -4,7 +4,6 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
-  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -73,12 +72,6 @@ export class ProductionInstructionElementDto {
 export class SaveProductionInstructionDto {
   @IsUUID()
   articleId!: string;
-
-  @IsDateString({ strict: true })
-  startDate!: string;
-
-  @IsDateString({ strict: true })
-  completionDate!: string;
 
   @IsInt() @Min(1) @Max(100)
   partCount!: number;

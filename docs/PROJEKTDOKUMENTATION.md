@@ -1,7 +1,7 @@
 # CMS ERP – Projektdokumentation
 
 **Dokumentationsstand:** 15. August 2026
-**Projektversion:** 0.3.1a
+**Projektversion:** 0.3.2a
 **Status:** lauffähige lokale Entwicklungsgrundlage mit ersten Kernfunktionen
 
 ## 1. Projektziel
@@ -42,8 +42,8 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 | Artikeleinheiten | umgesetzt | auflisten; durch Administratoren anlegen, umbenennen und löschen |
 | Lagerplätze | umgesetzt | Übersicht, Suche sowie Anlage, Bearbeitung und geschützte Löschung |
 | Bestandsübersicht | umgesetzt | Kennzahlen, lagerplatzbezogene Bestände, Bewertung, kritische und unbewertete Positionen |
-| Produktionsanweisungen | umgesetzt | Übersicht und vollständige Pflege verschachtelter Elemente und Arbeitsschritte |
-| Produktionen | umgesetzt | Produktionsübersicht, Suche und Erzeugung unveränderlicher Arbeitskopien aus Anweisungsvorlagen |
+| Produktionsanweisungen | umgesetzt | zeitunabhängige Vorlagen mit vollständiger Pflege verschachtelter Elemente und Arbeitsschritte |
+| Produktionen | umgesetzt | Produktionsübersicht, Suche, individuelle Terminplanung, inklusive Plandauer und Erzeugung unveränderlicher Arbeitskopien aus Vorlagen |
 | Zahlungsarten | umgesetzt | auflisten; durch Administratoren anlegen und löschen |
 | Externe Schnittstellen | umgesetzt | Shopware-6-Verbindungen verwalten, Zugangsdaten verschlüsseln und Verbindung testen |
 | Datenfreigaben | umgesetzt | Import, separaten Bestandsimport, Export, Änderung und Löschung je Schnittstelle freigeben oder sperren |
@@ -115,7 +115,8 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 - Einstellungsseite für Schnittstellenintervalle, Bestandsfreigabe und Laufstatus
 - Bestandsübersicht mit Kennzahlen, Bewertung und Suche
 - Produktionsanweisungen mit verschachteltem Editor für Elemente und Arbeitsschritte
-- Produktionsübersicht mit Suche und Anlage aus einer Anweisungsvorlage
+- Produktionsübersicht mit Suche, Terminplanung, berechneter Dauer, aktuellem
+  Arbeitsschritt und Ampel-/Recorderanzeige
 - administrative Backup-Verwaltung mit Sicherheitsabfragen vor Wiederherstellung
   und Löschung
 - Update-Statusseite mit manueller Neuprüfung der Systemvoraussetzungen
@@ -220,8 +221,9 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 
 **Produktionsanweisungen**
 
-- Produktions- und Stücklistenartikeln können datierte Produktionsanweisungen mit
-  automatisch fortlaufender Anweisungsnummer zugeordnet werden.
+- Produktions- und Stücklistenartikeln können zeitunabhängige
+  Produktionsanweisungen mit automatisch fortlaufender Anweisungsnummer zugeordnet
+  werden. Termine werden erst beim Anlegen einer konkreten Produktion festgelegt.
 - Eine Anweisung besteht aus bis zu 100 benannten Elementen mit jeweils bis zu 200
   geordneten Arbeitsschritten; insgesamt sind höchstens 1.000 Schritte zulässig.
 - Arbeitsschritte unterscheiden körperliche Arbeit und Prozess, unterstützen
@@ -235,15 +237,23 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 
 - Eine Produktion wird aus einer vorhandenen Produktionsanweisung erzeugt und
   erhält eine automatisch fortlaufende Produktionsnummer.
-- Artikel, Name, Zeitraum, Anweisungsnummer, Elemente und Arbeitsschritte werden als
+- Produktionsstart und -ende werden für jede Produktion verpflichtend angegeben;
+  das Ende darf nicht vor dem Start liegen. Die Plandauer wird einschließlich
+  beider Kalendertage berechnet und gespeichert.
+- Artikel, Name, Anweisungsnummer, Elemente und Arbeitsschritte werden als
   eigenständige Arbeitskopie übernommen. Spätere Änderungen an der Vorlage ändern
   eine bereits angelegte Produktion nicht.
 - Für jedes Element muss mindestens ein Arbeitsschritt vorhanden sein. Neue
   Produktionen beginnen mit dem Status `PLANNED`, ihre Schritte mit
   `NOT_STARTED`.
-- Die Oberfläche listet und durchsucht Produktionen nach Nummer, Anweisung,
-  Artikel, Name und Status. Statusänderungen und die operative Bearbeitung der
-  Arbeitsschritte sind noch nicht implementiert.
+- Die Oberfläche listet Produktionsname, Nummer, Startdatum, Plandauer und Umfang.
+  Sie ermittelt aus den Schrittstatus den aktuellen Arbeitsschritt und zeigt den
+  Zustand als Recorder mit Start, Pause, Stopp, Läuft oder Problem an.
+- Die Suche berücksichtigt Produktionsnummer, Startdatum, Name und aktuellen
+  Arbeitsschritt. Statusänderungen und die operative Bearbeitung der Schritte sind
+  noch nicht implementiert.
+- In der Artikelansicht werden verwendete Produktionsanweisungen mit Anzahl ihrer
+  Teile und Schritte statt mit einem Vorlagenzeitraum dargestellt.
 
 **Zahlungsarten**
 
@@ -524,19 +534,23 @@ Erstellungszeitpunkt. Das Modell ist noch nicht mit einem Belegmodell verbunden.
 ### 5.13 Produktionsanweisungen
 
 `ProductionInstruction` enthält UUID, automatisch fortlaufende Nummer,
-Artikelrelation, beim Anlegen kopierten Artikelnamen, Start- und Fertigstellungsdatum
-sowie Teileanzahl. `ProductionInstructionElement` ordnet benannte Elemente über ihre
-Position; `ProductionInstructionStep` speichert die geordneten Arbeitsschritte samt
+Artikelrelation, beim Anlegen kopierten Artikelnamen und Teileanzahl. Die Vorlage
+besitzt im aktuellen Prisma-Modell bewusst keinen Produktionszeitraum.
+`ProductionInstructionElement` ordnet benannte Elemente über ihre Position;
+`ProductionInstructionStep` speichert die geordneten Arbeitsschritte samt
 Arbeitsart, Steuerungsoptionen, Zeiten und Seriennummernmodus. Elemente und Schritte
 werden beim Löschen ihrer Eltern kaskadierend entfernt; das Löschen eines verwendeten
-Artikels bleibt durch `RESTRICT` gesperrt.
+Artikels bleibt durch `RESTRICT` gesperrt. Die Umstellungsmigration lässt frühere
+Vorlagentermine in den physischen, nun optionalen Datenbankspalten zur
+Nachvollziehbarkeit bestehen; neue Anweisungen verwenden diese Spalten nicht mehr.
 
 ### 5.14 Produktionen
 
 `Production` referenziert die zugrunde liegende Produktionsanweisung und den
-Artikel, speichert aber Anweisungsnummer, Namen, Zeitraum und Status zusätzlich als
-eigenen Arbeitsstand. `ProductionElement` und `ProductionStep` sind kaskadierende
-Kopien der Vorlagenelemente und -schritte. Die möglichen vorbereiteten
+Artikel, speichert aber Anweisungsnummer, Namen, Start- und Enddatum, inklusive
+Plandauer in Kalendertagen und Status als eigenen Arbeitsstand. `ProductionElement`
+und `ProductionStep` sind kaskadierende Kopien der Vorlagenelemente und -schritte.
+Die möglichen vorbereiteten
 Produktionsstatus sind `PLANNED`, `IN_PROGRESS`, `PAUSED`, `COMPLETED` und
 `PROBLEM`; Schritte beginnen mit `NOT_STARTED` und besitzen Felder für Start- und
 Abschlusszeitpunkt. Die derzeitige API legt Produktionen an und liest sie, verändert
@@ -588,7 +602,7 @@ bereits gespeicherter Produktbilder wird ein gültiges Keycloak-Bearer-Token ben
 | `DELETE` | `/production-instructions/:id` | angemeldet | Produktionsanweisung löschen |
 | `GET` | `/productions` | angemeldet | Produktionen mit kopierten Elementen und Schritten auflisten |
 | `GET` | `/productions/:id` | angemeldet | einzelne Produktion laden |
-| `POST` | `/productions` | angemeldet | Produktion aus einer Anweisung erzeugen |
+| `POST` | `/productions` | angemeldet | Produktion mit Start- und Enddatum aus einer Anweisung erzeugen |
 | `GET` | `/backups` | `cms-erp-admin` | verfügbare ZIP-Sicherungen auflisten |
 | `POST` | `/backups` | `cms-erp-admin` | Datenbank- und Dateisicherung erstellen |
 | `GET` | `/backups/:id/download` | `cms-erp-admin` | Sicherung herunterladen |
@@ -760,7 +774,8 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
   bestanden.
 - Abgedeckt sind insbesondere Schutzmaßnahmen externer Verbindungen,
   Produktionsanweisungs-Validierung, das Erzeugen von Produktionen als Kopie der
-  Vorlage und das Weglassen großer Dateidaten in der Artikelliste.
+  Vorlage, Terminvalidierung und inklusive Plandauer sowie das Weglassen großer
+  Dateidaten in der Artikelliste.
 - Der Web-TypeScript-Build und der Vite-Produktionsbuild laufen erfolgreich durch.
 - Vitest läuft erfolgreich, meldet aber ausdrücklich, dass keine Testdateien
   vorhanden sind.
@@ -787,10 +802,10 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
   und Bearbeiten.
 - Artikel können derzeit nicht gelöscht werden; die API bietet Auflisten, Anlegen
   und Bearbeiten.
-- Produktionen sind derzeit unveränderliche Kopien einer Anweisung. Obwohl das
-  Datenmodell Status, Schrittstatus sowie Start- und Abschlusszeitpunkte vorsieht,
-  fehlen API und Oberfläche für Start, Pause, Fortschrittsmeldung, Bestätigung,
-  Störung und Abschluss.
+- Produktionen sind derzeit unveränderliche, individuell terminierte Kopien einer
+  Anweisung. Die Oberfläche visualisiert zwar den aus Produktion und Schritten
+  abgeleiteten Recorderzustand und aktuellen Arbeitsschritt, bietet aber noch keine
+  Aktionen für Start, Pause, Fortschrittsmeldung, Bestätigung, Störung und Abschluss.
 - Alle angemeldeten Benutzer dürfen derzeit Adressen und Artikel anlegen und
   bearbeiten sowie Produktionsanweisungen und Produktionen verwalten. Lagerplätze
   können sie lesen; Änderungen, Schnittstellen-, Backup- und Systemstatusverwaltung

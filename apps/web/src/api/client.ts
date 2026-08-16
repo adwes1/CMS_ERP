@@ -261,8 +261,6 @@ export type ProductionInstructionElementInput = {
 
 export type ProductionInstructionInput = {
   articleId: string;
-  startDate: string;
-  completionDate: string;
   partCount: number;
   elements: ProductionInstructionElementInput[];
 };
@@ -284,8 +282,6 @@ export type ProductionInstruction = {
   articleId: string;
   article: Pick<Article, 'id' | 'articleNumber' | 'name' | 'type'>;
   name: string;
-  startDate: string;
-  completionDate: string;
   partCount: number;
   elements: ProductionInstructionElement[];
   createdAt: string;
@@ -318,10 +314,17 @@ export type Production = {
   name: string;
   startDate: string;
   completionDate: string;
+  plannedDays: number;
   status: 'PLANNED' | 'IN_PROGRESS' | 'PAUSED' | 'COMPLETED' | 'PROBLEM';
   elements: ProductionElement[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProductionSummary = Omit<Production, 'elements'> & {
+  elements: Array<Pick<ProductionElement, 'id' | 'position' | 'name'> & {
+    steps: Array<Pick<ProductionStep, 'id' | 'position' | 'name' | 'status'>>;
+  }>;
 };
 
 export type ProductionInstructionSummary = Omit<ProductionInstruction, 'elements'> & {
@@ -481,12 +484,12 @@ export const updateProductionInstruction = (id: string, input: ProductionInstruc
 export const deleteProductionInstruction = (id: string) =>
   apiRequest<void>(`/api/production-instructions/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
-export const listProductions = () => apiRequest<Production[]>('/api/productions');
+export const listProductions = () => apiRequest<ProductionSummary[]>('/api/productions');
 
-export const createProduction = (productionInstructionId: string) =>
+export const createProduction = (input: { productionInstructionId: string; startDate: string; completionDate: string }) =>
   apiRequest<Production>('/api/productions', {
     method: 'POST',
-    body: JSON.stringify({ productionInstructionId }),
+    body: JSON.stringify(input),
   });
 
 export const uploadArticleImage = (name: string, dataUrl: string) =>

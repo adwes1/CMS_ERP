@@ -21,8 +21,6 @@ const step = {
 
 const input: SaveProductionInstructionDto = {
   articleId: '758196a8-b948-42e9-83d1-8a65827ba830',
-  startDate: '2026-08-15',
-  completionDate: '2026-08-16',
   partCount: 2,
   elements: [
     { name: 'Gehäuse', steps: [step] },
@@ -79,11 +77,6 @@ describe('ProductionInstructionsService', () => {
         },
       }),
     }));
-  });
-
-  it('verhindert ein Abschlussdatum vor dem Startdatum', async () => {
-    await expect(service.create({ ...input, completionDate: '2026-08-14' })).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.productionInstruction.create).not.toHaveBeenCalled();
   });
 
   it('verhindert eine abweichende Anzahl von Produktelementen', async () => {

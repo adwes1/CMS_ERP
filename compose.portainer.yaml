@@ -3,6 +3,7 @@
 services:
   gateway:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-adwes1}/cms-erp-gateway:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8090}:80"
@@ -16,6 +17,7 @@ services:
 
   web:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-adwes1}/cms-erp-web:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
@@ -25,6 +27,7 @@ services:
 
   api:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-adwes1}/cms-erp-api:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-cms_erp}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD muss gesetzt sein}@postgres:5432/${POSTGRES_DB:-cms_erp}?schema=public
@@ -62,6 +65,7 @@ services:
 
   postgres:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-adwes1}/cms-erp-postgres:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cms_erp}
@@ -78,6 +82,7 @@ services:
 
   keycloak:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-adwes1}/cms-erp-keycloak:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     command: start --import-realm
     environment:
@@ -109,6 +114,7 @@ services:
 
   keycloak-config:
     image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-adwes1}/cms-erp-keycloak:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: "no"
     entrypoint: ["/bin/sh", "/opt/cms-erp/configure.sh"]
     environment:

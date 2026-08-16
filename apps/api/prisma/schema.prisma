@@ -116,8 +116,6 @@ model ProductionInstruction {
   articleId         String                         @db.Uuid @map("article_id")
   article           Article                        @relation(fields: [articleId], references: [id], onDelete: Restrict)
   name              String
-  startDate         DateTime                       @db.Date @map("start_date")
-  completionDate    DateTime                       @db.Date @map("completion_date")
   partCount         Int                            @map("part_count")
   elements          ProductionInstructionElement[]
   productions       Production[]
@@ -125,7 +123,6 @@ model ProductionInstruction {
   updatedAt         DateTime                       @updatedAt @map("updated_at")
 
   @@index([articleId])
-  @@index([startDate])
   @@map("production_instructions")
 }
 
@@ -140,6 +137,7 @@ model Production {
   name                    String
   startDate               DateTime            @db.Date @map("start_date")
   completionDate          DateTime            @db.Date @map("completion_date")
+  plannedDays             Int                 @map("planned_days")
   status                  String              @default("PLANNED")
   elements                ProductionElement[]
   createdAt               DateTime            @default(now()) @map("created_at")
