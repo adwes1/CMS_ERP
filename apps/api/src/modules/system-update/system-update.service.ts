@@ -27,7 +27,7 @@ export class SystemUpdateService {
   private readonly repository = process.env.UPDATE_REPOSITORY || 'adwes1/CMS_ERP';
   private readonly branch = process.env.UPDATE_BRANCH || 'main';
   private readonly workflow = process.env.UPDATE_WORKFLOW || 'container-images.yml';
-  private readonly currentVersion = process.env.APP_VERSION || '0.3.2a';
+  private readonly currentVersion = process.env.APP_VERSION || '0.3.3a';
   private readonly currentCommit = process.env.APP_COMMIT_SHA || 'development';
   private readonly migrationDirectory = join(process.cwd(), 'prisma', 'migrations');
   private readonly filesDirectory = process.env.ARTICLE_IMAGE_DIR || join(process.cwd(), 'data', 'article-images');

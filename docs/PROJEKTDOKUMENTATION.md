@@ -1,7 +1,7 @@
 # CMS ERP – Projektdokumentation
 
-**Dokumentationsstand:** 15. August 2026
-**Projektversion:** 0.3.2a
+**Dokumentationsstand:** 16. August 2026
+**Projektversion:** 0.3.3 Alpha
 **Status:** lauffähige lokale Entwicklungsgrundlage mit ersten Kernfunktionen
 
 ## 1. Projektziel
@@ -54,7 +54,7 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 | Systemaktualisierung | umgesetzt | Versions-, Container-, Datenbank-, Migrations-, Speicher- und Backup-Prüfungen anzeigen |
 | Eigene API-Anbindung | umgesetzt | Basis-URL, Authentifizierungsart und verfügbare REST-Ressourcen anzeigen |
 | API-Dokumentation | umgesetzt | Swagger/OpenAPI unter `/api/docs` |
-| Tests | begonnen | 18 bestandene API-Tests; Vitest ist konfiguriert, Frontend-Testfälle fehlen |
+| Tests | begonnen | 29 bestandene API-Tests; Vitest ist konfiguriert, Frontend-Testfälle fehlen |
 | Weitere ERP-Module | geplant | Aufträge, Angebote, Buchhaltung, Lagerbewegungen, Systemgrundeinstellungen sowie Rollen & Rechte zeigen Platzhalterseiten |
 
 ## 3. Bisher durchgeführte Arbeiten
@@ -97,6 +97,8 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
   HTTPS-Basis-URLs, keine URL-Zugangsdaten, Pfade, Parameter oder Fragmente,
   Ablehnung interner/reservierter IP-Adressen, keine Redirects und zehn Sekunden
   Zeitlimit
+- Der GitHub-Abruf der Update-Prüfung folgt keinen Weiterleitungen, ist auf fünf
+  Sekunden und eine Antwortgröße von 1 MB begrenzt.
 - HTTPS, HSTS, Content Security Policy, Permissions Policy, Frame-Schutz,
   `X-Content-Type-Options` und restriktive Referrer-Policy am Gateway
 
@@ -109,7 +111,8 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 - automatische Token-Erneuerung vor API-Anfragen
 - Logout über Keycloak
 - sichtbare Fehler- und Erfolgsmeldungen in den Verwaltungsdialogen
-- eigenes Keycloak-Login-Theme passend zur Anwendungsoberfläche
+- eigenes, responsives Keycloak-Login-Theme mit reduziertem Terminal-Formular,
+  Autofill-Darstellung und optionalem Link zum Zurücksetzen des Passworts
 - Informationsseite für die eigene REST-API mit kopierbarer Basis-URL
 - eigene Vorschau- und Fortschrittsseiten für Kunden- und Artikelimporte
 - Einstellungsseite für Schnittstellenintervalle, Bestandsfreigabe und Laufstatus
@@ -252,6 +255,9 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
 - Die Suche berücksichtigt Produktionsnummer, Startdatum, Name und aktuellen
   Arbeitsschritt. Statusänderungen und die operative Bearbeitung der Schritte sind
   noch nicht implementiert.
+- Der Listenendpunkt überträgt nur die für Übersicht, aktuellen Schritt und
+  Recorderstatus benötigten Element- und Schrittfelder; der Detailendpunkt liefert
+  weiterhin den vollständigen Arbeitsstand.
 - In der Artikelansicht werden verwendete Produktionsanweisungen mit Anzahl ihrer
   Teile und Schritte statt mit einem Vorlagenzeitraum dargestellt.
 
@@ -269,8 +275,11 @@ Produktion sind Anweisungsvorlagen und daraus erzeugte Produktionen umgesetzt.
   Artikelbildablage und ein versioniertes Manifest; Programm- und Systemdateien
   gehören nicht dazu.
 - Backup-Erstellung und Wiederherstellung sind innerhalb eines API-Prozesses
-  gegenseitig gesperrt. Archive und Pfade werden vor dem Zugriff validiert; eine
-  Wiederherstellung ersetzt Datenbank und Artikelbilder nach Bestätigung.
+  gegenseitig gesperrt; auch das Löschen verwendet dieselbe exklusive Sperre.
+  Dateinamen, Manifest und jeder ZIP-Eintrag werden vor dem Entpacken validiert.
+  Absolute Pfade, Rückwärtsnavigation und unerwartete Archivinhalte werden
+  abgewiesen. Eine Wiederherstellung ersetzt Datenbank und Artikelbilder nach
+  Bestätigung.
 - Die Update-Seite vergleicht den aktuellen Commit mit dem letzten erfolgreichen
   Container-Workflow auf GitHub. Zusätzlich prüft sie Datenbank und Constraints,
   Prisma-Migrationen, API-, Web- und Keycloak-Erreichbarkeit, freien Speicher sowie
@@ -554,7 +563,9 @@ Die möglichen vorbereiteten
 Produktionsstatus sind `PLANNED`, `IN_PROGRESS`, `PAUSED`, `COMPLETED` und
 `PROBLEM`; Schritte beginnen mit `NOT_STARTED` und besitzen Felder für Start- und
 Abschlusszeitpunkt. Die derzeitige API legt Produktionen an und liest sie, verändert
-diese Statusfelder aber noch nicht.
+diese Statusfelder aber noch nicht. Datenbank-Checks erzwingen zusätzlich, dass das
+Enddatum nicht vor dem Startdatum liegt und `plannedDays` exakt der inklusiven
+Kalendertagsdifferenz entspricht.
 
 ## 6. API-Übersicht
 
@@ -767,15 +778,15 @@ Das API-Dockerfile besitzt außerdem einen separaten `test`-Stage. Der Runtime-S
 enthält nur Produktionsabhängigkeiten; Prisma ist deshalb als Laufzeitabhängigkeit
 eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 
-### Verifizierter Stand am 15. August 2026
+### Verifizierter Stand am 16. August 2026 – Version 0.3.3 Alpha
 
 - Der Prisma-Client entspricht dem aktuellen Schema; anschließend liefen der
-  NestJS-Build und alle vier API-Testsuiten erfolgreich durch: 18 von 18 Tests
+  NestJS-Build und alle fünf API-Testsuiten erfolgreich durch: 29 von 29 Tests
   bestanden.
 - Abgedeckt sind insbesondere Schutzmaßnahmen externer Verbindungen,
   Produktionsanweisungs-Validierung, das Erzeugen von Produktionen als Kopie der
-  Vorlage, Terminvalidierung und inklusive Plandauer sowie das Weglassen großer
-  Dateidaten in der Artikelliste.
+  Vorlage, Terminvalidierung und inklusive Plandauer, reduzierte Datenmengen in
+  Artikel- und Produktionslisten sowie sichere Pfade in Backup-Archiven.
 - Der Web-TypeScript-Build und der Vite-Produktionsbuild laufen erfolgreich durch.
 - Vitest läuft erfolgreich, meldet aber ausdrücklich, dass keine Testdateien
   vorhanden sind.
@@ -790,7 +801,7 @@ eingetragen, damit Migrationen beim Containerstart ausgeführt werden können.
 
 ## 10. Bekannte Grenzen und offene Punkte
 
-- Die automatisierte Testabdeckung ist weiterhin gering: 18 API-Unit-Tests decken
+- Die automatisierte Testabdeckung ist weiterhin gering: 29 API-Unit-Tests decken
   ausgewählte Sicherheits- und Fachregeln ab; Integrations-, Browser- und
   Frontend-Testfälle fehlen.
 - Aufträge, Angebote, Buchhaltung, Lagerbewegungen, Systemgrundeinstellungen sowie

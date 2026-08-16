@@ -433,7 +433,7 @@ function App() {
       >
         <Box component="span" sx={{ color: error ? 'error.main' : 'success.main' }}>● {error ? 'DEGRADED' : 'ONLINE'}</Box>
         <Box component="span" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {user?.displayName ?? user?.username ?? 'SITZUNG WIRD GELADEN'} · {isAdmin ? 'ADMIN' : 'BENUTZER'} · CMS_ERP 0.3.2a
+          {user?.displayName ?? user?.username ?? 'SITZUNG WIRD GELADEN'} · {isAdmin ? 'ADMIN' : 'BENUTZER'} · CMS_ERP 0.3.3a
         </Box>
       </Box>
     </Box>

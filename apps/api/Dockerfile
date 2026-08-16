@@ -24,7 +24,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
-ARG APP_VERSION=0.3.2a
+ARG APP_VERSION=0.3.3a
 ARG APP_COMMIT_SHA=development
 ENV NODE_ENV=production
 ENV APP_VERSION=${APP_VERSION}
